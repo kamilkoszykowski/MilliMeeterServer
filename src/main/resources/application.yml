@@ -1,0 +1,13 @@
+auth0:
+  # Replace with the audience/identifier you configured
+  audience: http://localhost:8080
+
+# The following is standard Spring Security OAuth2 configuration.
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Replace with the domain of your Auth0 tenant.
+          # Note the trailing slash is important!
+          issuer-uri: https://dev-5p56kq6paata1isj.us.auth0.com/
