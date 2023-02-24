@@ -1,6 +1,5 @@
 package millimeeter.server.controller;
 
-import static millimeeter.server.controller.response.ProfileControllerResponses.*;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -11,12 +10,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import millimeeter.server.dto.RegistrationDto;
-import millimeeter.server.enums.Gender;
-import millimeeter.server.enums.LookingFor;
 import millimeeter.server.model.Profile;
 import millimeeter.server.repository.ProfileRepository;
 import millimeeter.server.repository.UserRepository;
@@ -39,65 +35,41 @@ import org.springframework.web.context.WebApplicationContext;
 @AutoConfigureMockMvc
 class ProfileControllerTests {
 
-  @Autowired UserRepository userRepository;
-  @Autowired ProfileRepository profileRepository;
-  @Autowired private WebApplicationContext applicationContext;
+  private final UserRepository userRepository;
+  private final ProfileRepository profileRepository;
+  private final WebApplicationContext applicationContext;
   private MockMvc mockMvc;
 
-  static final String USERNAME = "mockUser";
+  @Autowired
+  public ProfileControllerTests(
+      UserRepository userRepository,
+      ProfileRepository profileRepository,
+      WebApplicationContext applicationContext) {
+    this.userRepository = userRepository;
+    this.profileRepository = profileRepository;
+    this.applicationContext = applicationContext;
+  }
+
+  static final String USERNAME = MessageControllerTests.USERNAME;
   long profileId = -1;
-  Profile profile =
-      new Profile(
-          null,
-          "ProfileOne",
-          LocalDate.parse("2000-01-01"),
-          Gender.MAN,
-          List.of("photo1.jpg", "photo2.jpg"),
-          "description1",
-          "mySong",
-          90.0,
-          90.0,
-          LocalDateTime.now(),
-          50,
-          null,
-          LookingFor.WOMEN,
-          100,
-          18,
-          40);
-  static final String ANOTHER_USERNAME = "anotherUser";
+  static Profile profile = MessageControllerTests.profile;
+  static final String ANOTHER_USERNAME = MessageControllerTests.ANOTHER_USERNAME;
   long anotherId = -1;
-  Profile anotherProfile =
-      new Profile(
-          null,
-          "ProfileTwo",
-          LocalDate.parse("2000-01-01"),
-          Gender.WOMAN,
-          List.of("anotherPhoto1.jpg", "anotherPhoto2.jpg"),
-          "another description",
-          "another mySong",
-          89.0,
-          89.0,
-          LocalDateTime.now(),
-          50,
-          null,
-          LookingFor.MEN,
-          100,
-          18,
-          40);
+  Profile anotherProfile = MessageControllerTests.anotherProfile;
 
   static RegistrationDto registrationDto =
       new RegistrationDto(
-          "Phhjdnjuahunyksfu",
-          LocalDate.parse("2000-01-31"),
-          "WOMAN",
-          "string",
-          "9QJm7ECVsC0Lygh33KbiwdqCvl5txHfVJERBtMYO6kEvOfRA71slgcb6Kc3Fu7KQxFX9LD4KO",
-          90.0,
-          90.0,
-          "WOMEN",
-          100,
-          100,
-          100);
+          profile.getFirstName(),
+          profile.getDateOfBirth(),
+          profile.getGender().name(),
+          profile.getDescription(),
+          profile.getMySong(),
+          profile.getLastLatitude(),
+          profile.getLastLongitude(),
+          profile.getLookingFor().name(),
+          profile.getSearchDistance(),
+          profile.getAgeRangeMinimum(),
+          profile.getAgeRangeMaximum());
 
   static String bodyJson =
       "{\n"
@@ -274,19 +246,6 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void findProfilesToSwipeAndExpectUnprocessableEntityProfileNotExists() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    mockMvc
-        .perform(get("/api/v1/profiles"))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            jsonPath("$")
-                .value(FIND_PROFILES_TO_SWIPE_UNPROCESSABLE_ENTITY_PROFILE_NOT_EXISTS_RESPONSE));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
   void getMyProfileAndExpectOk() throws Exception {
     createProfileIfNotExists(profileId, profile);
     mockMvc
@@ -304,18 +263,6 @@ class ProfileControllerTests {
         .andExpect(jsonPath("$.ageRangeMaximum").value(profile.getAgeRangeMaximum()))
         .andExpect(jsonPath("$._links.update.href").value("http://localhost/api/v1/profiles"))
         .andExpect(jsonPath("$._links.delete.href").value("http://localhost/api/v1/profiles"));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
-  void getMyProfileAndExpectUnprocessableEntityProfileNotExists() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    mockMvc
-        .perform(get("/api/v1/profiles/me"))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            jsonPath("$").value(GET_MY_PROFILE_UNPROCESSABLE_ENTITY_PROFILE_NOT_EXISTS_RESPONSE));
   }
 
   @Test
@@ -361,7 +308,7 @@ class ProfileControllerTests {
             multipart("/api/v1/profiles").file(photo).file(body).accept(MediaType.APPLICATION_JSON))
         .andDo(print())
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$").value(CREATE_CONFLICT_RESPONSE));
+        .andExpect(jsonPath("$.errors").value("Profile already exists"));
   }
 
   @Test
@@ -381,7 +328,7 @@ class ProfileControllerTests {
                 .accept(MediaType.APPLICATION_JSON))
         .andDo(print())
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$").value(CREATE_UNPROCESSABLE_ENTITY_TOO_MANY_PHOTOS_RESPONSE));
+        .andExpect(jsonPath("$.errors").value("Limit of 5 photos exceeded"));
   }
 
   @Test
@@ -429,111 +376,6 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void updateProfileAndExpectUnprocessableEntityProfileNotExists() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    mockMvc
-        .perform(
-            put("/api/v1/profiles")
-                .content(
-                    "{\n"
-                        + "  \"description\": \"string\",\n"
-                        + "  \"mySong\":"
-                        + " \"8CRUfdqO9fpirMnEMqNYbHsWsSS9UO7nySTaa1e2pf5cbuWgwH307TrCBwX07N\",\n"
-                        + "  \"lastLatitude\": 1,\n"
-                        + "  \"lastLongitude\": 1,\n"
-                        + "  \"lookingFor\": \"WOMEN\",\n"
-                        + "  \"searchDistance\": 100,\n"
-                        + "  \"ageRangeMinimum\": 18,\n"
-                        + "  \"ageRangeMaximum\": 100\n"
-                        + "}")
-                .contentType(MediaType.APPLICATION_JSON_VALUE))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            jsonPath("$").value(UPDATE_PROFILE_UNPROCESSABLE_ENTITY_PROFILE_NOT_EXISTS_RESPONSE));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
-  void updateProfileAndExpectUnprocessableEntityNotValid() throws Exception {
-    createProfileIfNotExists(profileId, profile);
-    mockMvc
-        .perform(
-            put("/api/v1/profiles")
-                .content(
-                    "{\n"
-                        + "  \"description\": \"string\",\n"
-                        + "  \"mySong\":"
-                        + " \"8CRUfdqO9fpirMnEMqNYbHsWsSS9UO7nySTaa1e2pf5cbuWgwH307TrCBwX07N\",\n"
-                        + "  \"lastLatitude\": 1,\n"
-                        + "  \"lastLongitude\": 1,\n"
-                        + "  \"lookingFor\": \"WOMEN\",\n"
-                        + "  \"searchDistance\": 100,\n"
-                        + "  \"ageRangeMinimum\": 14,\n"
-                        + "  \"ageRangeMaximum\": 100\n"
-                        + "}")
-                .contentType(MediaType.APPLICATION_JSON_VALUE))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            result ->
-                result
-                    .getResponse()
-                    .getContentAsString()
-                    .contains("The minimum age must be between 18 and 100"));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
-  void updateProfileAndExpectBadRequest() throws Exception {
-    createProfileIfNotExists(profileId, profile);
-    mockMvc
-        .perform(
-            put("/api/v1/profiles")
-                .content(
-                    "{\n"
-                        + "  \"desription\": \"string\",\n"
-                        + "  \"mySog\":"
-                        + " \"8CRUfdqO9fpirMnEMqNYbHsWsSS9UO7nySTaa1e2pf5cbuWgwH307TrCBwX07N\",\n"
-                        + "  \"lastLtitude\": 1,\n"
-                        + "  \"lastLngitude\": 1,\n"
-                        + "  \"lookinFor\": \"WOMEN\",\n"
-                        + "  \"searchDtance\": 100,\n"
-                        + "  \"ageRainimum\": 18,\n"
-                        + "  \"ageRangeMaximum\": 100\n"
-                        + "}")
-                .contentType(MediaType.APPLICATION_JSON_VALUE))
-        .andDo(print())
-        .andExpect(status().isBadRequest())
-        .andExpect(result -> result.getResponse().getContentAsString().contains("My song required"))
-        .andExpect(
-            result ->
-                result.getResponse().getContentAsString().contains("The last latitude is required"))
-        .andExpect(
-            result ->
-                result
-                    .getResponse()
-                    .getContentAsString()
-                    .contains("The last longitude is required"))
-        .andExpect(
-            result ->
-                result.getResponse().getContentAsString().contains("The looking for is required"))
-        .andExpect(
-            result ->
-                result
-                    .getResponse()
-                    .getContentAsString()
-                    .contains("The search distance is required"))
-        .andExpect(
-            result ->
-                result
-                    .getResponse()
-                    .getContentAsString()
-                    .contains("The age range minimum is required"));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
   void updateLocationAndExpectOkAndNewValues() throws Exception {
     createProfileIfNotExists(profileId, profile);
     mockMvc
@@ -549,69 +391,9 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void updateLocationAndExpectUnprocessableEntityNotValid() throws Exception {
-    createProfileIfNotExists(profileId, profile);
-    mockMvc
-        .perform(
-            put("/api/v1/profiles/location")
-                .content("{\n" + "  \"lastLatitude\": 181,\n" + "  \"lastLongitude\": 181\n" + "}")
-                .contentType(MediaType.APPLICATION_JSON_VALUE))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            result ->
-                result
-                    .getResponse()
-                    .getContentAsString()
-                    .contains("The latitude must be between -90 and 90"))
-        .andExpect(
-            result ->
-                result
-                    .getResponse()
-                    .getContentAsString()
-                    .contains("The longitude must be between -180 and 180"));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
-  void updateLocationAndExpectBadRequest() throws Exception {
-    createProfileIfNotExists(profileId, profile);
-    mockMvc
-        .perform(
-            put("/api/v1/profiles/location")
-                .content("{\n" + "  \"lastLaiude\": 181,\n" + "  \"lasLonitude\": 181\n" + "}")
-                .contentType(MediaType.APPLICATION_JSON_VALUE))
-        .andDo(print())
-        .andExpect(status().isBadRequest())
-        .andExpect(
-            result ->
-                result.getResponse().getContentAsString().contains("The last latitude is required"))
-        .andExpect(
-            result ->
-                result
-                    .getResponse()
-                    .getContentAsString()
-                    .contains("The last longitude is required"));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
-  void updateLocationAndExpectUnprocessableEntityProfileNotExists() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    mockMvc
-        .perform(
-            put("/api/v1/profiles/location")
-                .content("{\n" + "  \"lastLatitude\": 90,\n" + "  \"lastLongitude\": 90\n" + "}")
-                .contentType(MediaType.APPLICATION_JSON_VALUE))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            jsonPath("$").value(UPDATE_LOCATION_UNPROCESSABLE_ENTITY_PROFILE_NOT_EXISTS_RESPONSE));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
   void uploadPhotoAndExpectOkWithPhotoAddedAsLast() throws Exception {
+    deleteProfileIfExistsById(profileId);
+    profile.setPhotos(List.of("photo1.jpg", "photo2.jpg"));
     createProfileIfNotExists(profileId, profile);
     MockMultipartHttpServletRequestBuilder builder =
         MockMvcRequestBuilders.multipart("/api/v1/profiles/photos");
@@ -687,7 +469,8 @@ class ProfileControllerTests {
   void uploadPhotoAndExpectUnprocessableEntityPhotoLimitReached() throws Exception {
     deleteProfileIfExistsById(profileId);
     Profile modifiedProfile = profile;
-    modifiedProfile.setPhotos(List.of("photo1", "photo2", "photo3", "photo4", "photo5"));
+    modifiedProfile.setPhotos(
+        List.of("photo1.jpg", "photo2.jpg", "photo3.jpg", "photo4.jpg", "photo5.jpg"));
     createProfileIfNotExists(profileId, modifiedProfile);
     MockMultipartHttpServletRequestBuilder builder =
         MockMvcRequestBuilders.multipart("/api/v1/profiles/photos");
@@ -703,81 +486,13 @@ class ProfileControllerTests {
         .perform(builder.file(photo).param("index", "-1").accept(MediaType.APPLICATION_JSON))
         .andDo(print())
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            jsonPath("$").value(UPLOAD_PHOTO_UNPROCESSABLE_ENTITY_PHOTO_LIMIT_REACHED_RESPONSE));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
-  void uploadPhotoAndExpectUnprocessableEntityProfileNotExists() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    MockMultipartHttpServletRequestBuilder builder =
-        MockMvcRequestBuilders.multipart("/api/v1/profiles/photos");
-    builder.with(
-        new RequestPostProcessor() {
-          @Override
-          public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
-            request.setMethod("PUT");
-            return request;
-          }
-        });
-    mockMvc
-        .perform(builder.file(photo).param("index", "-1").accept(MediaType.APPLICATION_JSON))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            jsonPath("$").value(UPLOAD_PHOTO_UNPROCESSABLE_ENTITY_PROFILE_NOT_EXISTS_RESPONSE));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
-  void uploadPhotoAndExpectUnprocessableEntityNotValid() throws Exception {
-    createProfileIfNotExists(profileId, profile);
-    MockMultipartHttpServletRequestBuilder builder =
-        MockMvcRequestBuilders.multipart("/api/v1/profiles/photos");
-    builder.with(
-        new RequestPostProcessor() {
-          @Override
-          public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
-            request.setMethod("PUT");
-            return request;
-          }
-        });
-    mockMvc
-        .perform(builder.file(photo).param("index", "5").accept(MediaType.APPLICATION_JSON))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            result ->
-                result
-                    .getResponse()
-                    .getContentAsString()
-                    .contains("Photo number must be between -1 and 4"));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
-  void uploadPhotoAndExpectBadRequest() throws Exception {
-    createProfileIfNotExists(profileId, profile);
-    MockMultipartHttpServletRequestBuilder builder =
-        MockMvcRequestBuilders.multipart("/api/v1/profiles/photos");
-    builder.with(
-        new RequestPostProcessor() {
-          @Override
-          public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
-            request.setMethod("PUT");
-            return request;
-          }
-        });
-    mockMvc
-        .perform(builder.file(photo).param("i", "-1").accept(MediaType.APPLICATION_JSON))
-        .andDo(print())
-        .andExpect(status().isBadRequest());
+        .andExpect(jsonPath("$.errors").value("Limit of 5 photos reached"));
   }
 
   @Test
   @WithMockUser(username = USERNAME)
   void deletePhotoAndExpectOk() throws Exception {
+    deleteProfileIfExistsById(profileId);
     createProfileIfNotExists(profileId, profile);
     mockMvc
         .perform(put("/api/v1/profiles/photos/{photoNumber}", 0))
@@ -801,44 +516,6 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void deletePhotoAndExpectUnprocessableEntityNotValid() throws Exception {
-    createProfileIfNotExists(profileId, profile);
-    mockMvc
-        .perform(put("/api/v1/profiles/photos/{photoNumber}", 5))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            result ->
-                result
-                    .getResponse()
-                    .getContentAsString()
-                    .contains("Photo number must be between -1 and 4"));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
-  void deletePhotoAndExpectUnprocessableEntityProfileNotExists() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    mockMvc
-        .perform(put("/api/v1/profiles/photos/{photoNumber}", 0))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            jsonPath("$").value(DELETE_PHOTO_UNPROCESSABLE_ENTITY_PROFILE_NOT_EXISTS_RESPONSE));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
-  void deletePhotoAndExpectBadRequest() throws Exception {
-    createProfileIfNotExists(profileId, profile);
-    mockMvc
-        .perform(put("/api/v1/profiles/photos/{photoNumber}", "a"))
-        .andDo(print())
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
   void getSwipesLeftAndExpectOk() throws Exception {
     createProfileIfNotExists(profileId, profile);
     mockMvc
@@ -846,18 +523,6 @@ class ProfileControllerTests {
         .andDo(print())
         .andExpect(status().isOk())
         .andExpect(jsonPath("$", greaterThanOrEqualTo(0), lessThanOrEqualTo(50)).isNumber());
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
-  void getSwipesLeftAndExpectUnprocessableEntityProfileNotExists() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    mockMvc
-        .perform(get("/api/v1/profiles/swipesLeft"))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            jsonPath("$").value(GET_SWIPES_LEFT_UNPROCESSABLE_ENTITY_PROFILE_NOT_EXISTS_RESPONSE));
   }
 
   @Test

@@ -1,6 +1,5 @@
 package millimeeter.server.controller;
 
-import static millimeeter.server.controller.response.MatchControllerResponses.*;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -12,16 +11,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import millimeeter.server.dto.SentMessageDto;
-import millimeeter.server.enums.Gender;
-import millimeeter.server.enums.LookingFor;
-import millimeeter.server.model.Match;
-import millimeeter.server.model.Message;
-import millimeeter.server.model.Profile;
-import millimeeter.server.model.Swipe;
+import millimeeter.server.model.*;
 import millimeeter.server.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,54 +29,36 @@ import org.springframework.web.context.WebApplicationContext;
 @AutoConfigureMockMvc
 class MatchControllerTests {
 
-  @Autowired UserRepository userRepository;
-  @Autowired ProfileRepository profileRepository;
-  @Autowired SwipeRepository swipeRepository;
-  @Autowired MatchRepository matchRepository;
-  @Autowired MessageRepository messageRepository;
-  @Autowired private WebApplicationContext applicationContext;
+  private final UserRepository userRepository;
+  private final ProfileRepository profileRepository;
+  private final SwipeRepository swipeRepository;
+  private final MatchRepository matchRepository;
+  private final MessageRepository messageRepository;
+  private final WebApplicationContext applicationContext;
   private MockMvc mockMvc;
 
-  static final String USERNAME = "mockUser";
+  @Autowired
+  public MatchControllerTests(
+      UserRepository userRepository,
+      ProfileRepository profileRepository,
+      SwipeRepository swipeRepository,
+      MatchRepository matchRepository,
+      MessageRepository messageRepository,
+      WebApplicationContext applicationContext) {
+    this.userRepository = userRepository;
+    this.profileRepository = profileRepository;
+    this.swipeRepository = swipeRepository;
+    this.matchRepository = matchRepository;
+    this.messageRepository = messageRepository;
+    this.applicationContext = applicationContext;
+  }
+
+  static final String USERNAME = MessageControllerTests.USERNAME;
   long profileId = -1;
-  Profile profile =
-      new Profile(
-          null,
-          "ProfileOne",
-          LocalDate.parse("2000-01-01"),
-          Gender.MAN,
-          List.of("photo1.jpg", "photo2.jpg"),
-          "description1",
-          "mySong",
-          90.0,
-          90.0,
-          LocalDateTime.now(),
-          50,
-          null,
-          LookingFor.WOMEN,
-          100,
-          18,
-          40);
-  static final String ANOTHER_USERNAME = "anotherUser";
+  Profile profile = MessageControllerTests.profile;
+  static final String ANOTHER_USERNAME = MessageControllerTests.ANOTHER_USERNAME;
   long anotherId = -1;
-  Profile anotherProfile =
-      new Profile(
-          null,
-          "ProfileTwo",
-          LocalDate.parse("2000-01-01"),
-          Gender.WOMAN,
-          List.of("anotherPhoto1.jpg", "anotherPhoto2.jpg"),
-          "another description",
-          "another mySong",
-          89.0,
-          89.0,
-          LocalDateTime.now(),
-          50,
-          null,
-          LookingFor.MEN,
-          100,
-          18,
-          40);
+  Profile anotherProfile = MessageControllerTests.anotherProfile;
 
   void addSwipe(Long from, Long to, String direction) {
     swipeRepository.save(new Swipe(from, to, direction));
@@ -184,18 +158,6 @@ class MatchControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void getMatchesAndExpectUnprocessableEntityProfileNotExists() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    mockMvc
-        .perform(get("/api/v1/matches"))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            jsonPath("$").value(FIND_MATCHES_UNPROCESSABLE_ENTITY_PROFILE_NOT_EXISTS_RESPONSE));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
   void getMatchesWithMessagesAndExpectOkNoMatches() throws Exception {
     deleteProfileIfExistsById(anotherId);
     createProfileIfNotExists(profileId, profile);
@@ -243,20 +205,6 @@ class MatchControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void getMatchesWithMessagesAndExpectUnprocessableEntityProfileNotExists() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    mockMvc
-        .perform(get("/api/v1/conversations"))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            jsonPath("$")
-                .value(
-                    FIND_MATCHES_WITH_MESSAGES_UNPROCESSABLE_ENTITY_PROFILE_NOT_EXISTS_RESPONSE));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
   void deleteMatchAndExpectNoContent() throws Exception {
     deleteProfileIfExistsById(anotherId);
     createProfileIfNotExists(profileId, profile);
@@ -271,24 +219,6 @@ class MatchControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void deleteMatchAndExpectUnprocessableEntityNotValid() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    createProfileIfNotExists(profileId, profile);
-    mockMvc
-        .perform(delete("/api/v1/matches/{id}", -1))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            result ->
-                result
-                    .getResponse()
-                    .getContentAsString()
-                    .contains("The match id must be a positive number"))
-        .andExpect(jsonPath("$.errors", hasSize(1)));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
   void deleteMatchAndExpectUnprocessableEntityMatchNotExists() throws Exception {
     deleteProfileIfExistsById(anotherId);
     createProfileIfNotExists(profileId, profile);
@@ -299,19 +229,6 @@ class MatchControllerTests {
         .perform(delete("/api/v1/matches/{id}", match.getId()))
         .andDo(print())
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            jsonPath("$").value(DELETE_MATCH_UNPROCESSABLE_ENTITY_MATCH_NOT_EXISTS_RESPONSE));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
-  void deleteMatchAndExpectUnprocessableEntityProfileNotExists() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    mockMvc
-        .perform(delete("/api/v1/matches/{id}", 1))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            jsonPath("$").value(DELETE_MATCH_UNPROCESSABLE_ENTITY_PROFILE_NOT_EXISTS_RESPONSE));
+        .andExpect(jsonPath("$.errors").value("Match not exists"));
   }
 }

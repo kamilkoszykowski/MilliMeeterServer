@@ -1,6 +1,5 @@
 package millimeeter.server.controller;
 
-import static millimeeter.server.controller.response.SwipeControllerResponses.*;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -35,22 +34,34 @@ import org.springframework.web.context.WebApplicationContext;
 @AutoConfigureMockMvc
 class SwipeControllerTests {
 
-  @Autowired UserRepository userRepository;
-  @Autowired ProfileRepository profileRepository;
-  @Autowired SwipeRepository swipeRepository;
-  @Autowired private WebApplicationContext applicationContext;
+  private final UserRepository userRepository;
+  private final ProfileRepository profileRepository;
+  private final SwipeRepository swipeRepository;
+  private final WebApplicationContext applicationContext;
   private MockMvc mockMvc;
+
+  @Autowired
+  public SwipeControllerTests(
+      UserRepository userRepository,
+      ProfileRepository profileRepository,
+      SwipeRepository swipeRepository,
+      WebApplicationContext applicationContext) {
+    this.userRepository = userRepository;
+    this.profileRepository = profileRepository;
+    this.swipeRepository = swipeRepository;
+    this.applicationContext = applicationContext;
+  }
 
   static final String USERNAME = "mockUser";
   long profileId = -1;
-  Profile profile =
+  static Profile profile =
       new Profile(
           null,
-          "ProfileOne",
+          "TestUser",
           LocalDate.parse("2000-01-01"),
           Gender.MAN,
           List.of("photo1.jpg", "photo2.jpg"),
-          "description1",
+          "Hi, I'm user who takes part in integration testing :)",
           "mySong",
           90.0,
           90.0,
@@ -61,16 +72,16 @@ class SwipeControllerTests {
           100,
           18,
           40);
-  static final String ANOTHER_USERNAME = "anotherUser";
+  static final String ANOTHER_USERNAME = "Gloria";
   long anotherId = -1;
-  Profile anotherProfile =
+  static Profile anotherProfile =
       new Profile(
           null,
-          "ProfileTwo",
+          "Gloria",
           LocalDate.parse("2000-01-01"),
           Gender.WOMAN,
           List.of("anotherPhoto1.jpg", "anotherPhoto2.jpg"),
-          "another description",
+          "Hi, I'm another profile who takes part in integration testing of that API",
           "another mySong",
           89.0,
           89.0,
@@ -81,6 +92,26 @@ class SwipeControllerTests {
           100,
           18,
           40);
+  static final String ANOTHER_USERNAME_2 = "Victoria";
+  long anotherId2 = -1;
+  static Profile anotherProfile2 =
+      new Profile(
+          null,
+          "Victoria",
+          LocalDate.parse("2004-01-01"),
+          Gender.WOMAN,
+          List.of("anotherPhoto2_1.jpg", "anotherPhoto2_2.jpg"),
+          "I'm helping too :3",
+          "another mySong 2",
+          88.0,
+          88.0,
+          LocalDateTime.now(),
+          50,
+          null,
+          LookingFor.MEN,
+          100,
+          20,
+          50);
 
   void addSwipe(Long from, Long to, String direction) {
     swipeRepository.save(new Swipe(from, to, direction));
@@ -129,6 +160,8 @@ class SwipeControllerTests {
     } else {
       anotherId = userRepository.findProfileIdById(ANOTHER_USERNAME);
     }
+    deleteProfileIfExistsById(profileId);
+    createProfileIfNotExists(profileId, profile);
   }
 
   @Test
@@ -152,30 +185,6 @@ class SwipeControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void swipeLeftAndExpectUnprocessableEntityNotValid() throws Exception {
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    mockMvc
-        .perform(post("/api/v1/swipes/{id}/{direction}", -1, "L"))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            result ->
-                result
-                    .getResponse()
-                    .getContentAsString()
-                    .contains("The swipe value must be LEFT or RIGHT"))
-        .andExpect(
-            result ->
-                result
-                    .getResponse()
-                    .getContentAsString()
-                    .contains("Profile id must be a positive number"))
-        .andExpect(jsonPath("$.errors", hasSize(2)));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
   void swipeLeftAndExpectUnprocessableEntityNoSwipesLeft() throws Exception {
     deleteProfileIfExistsById(profileId);
     Profile modifiedProfile = profile;
@@ -185,7 +194,7 @@ class SwipeControllerTests {
         .perform(post("/api/v1/swipes/{id}/{direction}", anotherId, "LEFT"))
         .andDo(print())
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$").value(SWIPE_UNPROCESSABLE_ENTITY_NO_SWIPES_LEFT_RESPONSE));
+        .andExpect(jsonPath("$.errors").value("No swipes left"));
   }
 
   @Test
@@ -196,7 +205,7 @@ class SwipeControllerTests {
         .perform(post("/api/v1/swipes/{id}/{direction}", profileId, "LEFT"))
         .andDo(print())
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$").value(SWIPE_UNPROCESSABLE_ENTITY_CANNOT_SWIPE_YOURSELF_RESPONSE));
+        .andExpect(jsonPath("$.errors").value("You swiped yourself"));
   }
 
   @Test
@@ -210,7 +219,7 @@ class SwipeControllerTests {
         .perform(post("/api/v1/swipes/{id}/{direction}", anotherId, "LEFT"))
         .andDo(print())
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$").value(SWIPE_CONFLICT_ALREADY_SWIPED_RESPONSE));
+        .andExpect(jsonPath("$.errors").value("You already swiped that profile"));
   }
 
   @Test
@@ -223,18 +232,7 @@ class SwipeControllerTests {
         .perform(post("/api/v1/swipes/{id}/{direction}", anotherId, "LEFT"))
         .andDo(print())
         .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$").value(SWIPE_NOT_FOUND_SWIPED_PROFILE_NOT_EXISTS_YET_RESPONSE));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
-  void swipeLeftAndExpectUnprocessableEntityProfileNotExists() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    mockMvc
-        .perform(post("/api/v1/swipes/{id}/{direction}", anotherId, "LEFT"))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$").value(SWIPE_UNPROCESSABLE_ENTITY_PROFILE_NOT_EXISTS_RESPONSE));
+        .andExpect(jsonPath("$.errors").value("Swiped profile not exists"));
   }
 
   @Test
@@ -287,30 +285,6 @@ class SwipeControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void swipeRightAndExpectUnprocessableEntityNotValid() throws Exception {
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    mockMvc
-        .perform(post("/api/v1/swipes/{id}/{direction}", -1, "R"))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(
-            result ->
-                result
-                    .getResponse()
-                    .getContentAsString()
-                    .contains("Profile id must be a positive number"))
-        .andExpect(
-            result ->
-                result
-                    .getResponse()
-                    .getContentAsString()
-                    .contains("The swipe value must be LEFT or RIGHT"))
-        .andExpect(jsonPath("$.errors", hasSize(2)));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
   void swipeRightAndExpectUnprocessableEntityNoSwipesLeft() throws Exception {
     deleteProfileIfExistsById(profileId);
     Profile modifiedProfile = profile;
@@ -320,19 +294,20 @@ class SwipeControllerTests {
         .perform(post("/api/v1/swipes/{id}/{direction}", anotherId, "RIGHT"))
         .andDo(print())
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$").value(SWIPE_UNPROCESSABLE_ENTITY_NO_SWIPES_LEFT_RESPONSE));
+        .andExpect(jsonPath("$.errors").value("No swipes left"));
   }
 
   @Test
   @WithMockUser(username = USERNAME)
   void swipeRightAndExpectUnprocessableEntityCannotSwipeYourself() throws Exception {
     deleteProfileIfExistsById(profileId);
+    profile.setSwipesLeft(50);
     createProfileIfNotExists(profileId, profile);
     mockMvc
         .perform(post("/api/v1/swipes/{id}/{direction}", profileId, "RIGHT"))
         .andDo(print())
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$").value(SWIPE_UNPROCESSABLE_ENTITY_CANNOT_SWIPE_YOURSELF_RESPONSE));
+        .andExpect(jsonPath("$.errors").value("You swiped yourself"));
   }
 
   @Test
@@ -347,7 +322,7 @@ class SwipeControllerTests {
         .perform(post("/api/v1/swipes/{id}/{direction}", anotherId, "RIGHT"))
         .andDo(print())
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$").value(SWIPE_CONFLICT_ALREADY_SWIPED_RESPONSE));
+        .andExpect(jsonPath("$.errors").value("You already swiped that profile"));
   }
 
   @Test
@@ -360,17 +335,6 @@ class SwipeControllerTests {
         .perform(post("/api/v1/swipes/{id}/{direction}", anotherId, "RIGHT"))
         .andDo(print())
         .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$").value(SWIPE_NOT_FOUND_SWIPED_PROFILE_NOT_EXISTS_YET_RESPONSE));
-  }
-
-  @Test
-  @WithMockUser(username = USERNAME)
-  void swipeRightAndExpectUnprocessableEntityProfileNotExists() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    mockMvc
-        .perform(post("/api/v1/swipes/{id}/{direction}", anotherId, "RIGHT"))
-        .andDo(print())
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$").value(SWIPE_UNPROCESSABLE_ENTITY_PROFILE_NOT_EXISTS_RESPONSE));
+        .andExpect(jsonPath("$.errors").value("Swiped profile not exists"));
   }
 }

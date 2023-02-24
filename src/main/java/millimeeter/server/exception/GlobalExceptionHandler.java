@@ -70,7 +70,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
   @ExceptionHandler(ResponseStatusException.class)
   public ResponseEntity<Object> handleResponseStatusException(ResponseStatusException ex) {
-    return new ResponseEntity<>(
-        ex.getMessage().replaceFirst(".* \"", "").replace("\"", ""), ex.getStatus());
+    Map<String, List<String>> body = new HashMap<>();
+    body.put("errors", List.of(ex.getMessage().replaceFirst(".* \"", "").replace("\"", "")));
+    return new ResponseEntity<>(body, ex.getStatus());
   }
 }

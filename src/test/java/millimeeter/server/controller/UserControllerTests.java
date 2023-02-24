@@ -1,6 +1,5 @@
 package millimeeter.server.controller;
 
-import static millimeeter.server.controller.response.UserControllerResponses.CREATE_USER_CONFLICT_RESPONSE;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -25,11 +24,18 @@ import org.springframework.web.context.WebApplicationContext;
 @AutoConfigureMockMvc
 class UserControllerTests {
 
-  @Autowired UserRepository userRepository;
-  @Autowired private WebApplicationContext applicationContext;
+  private final UserRepository userRepository;
+  private final WebApplicationContext applicationContext;
   private MockMvc mockMvc;
 
-  static final String USERNAME = "mockUser";
+  @Autowired
+  public UserControllerTests(
+      UserRepository userRepository, WebApplicationContext applicationContext) {
+    this.userRepository = userRepository;
+    this.applicationContext = applicationContext;
+  }
+
+  static final String USERNAME = MessageControllerTests.USERNAME;
 
   @BeforeEach
   void init() {
@@ -66,7 +72,7 @@ class UserControllerTests {
         .perform(post("/api/v1/users"))
         .andDo(print())
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$").value(CREATE_USER_CONFLICT_RESPONSE));
+        .andExpect(jsonPath("$.errors").value("User already exists"));
   }
 
   @Test
