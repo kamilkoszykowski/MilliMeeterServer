@@ -2,16 +2,15 @@
 Done:
 - All basic functionalities
 - Integration tests
+- Complete OpenAPI3 documentation with examples
 
 In-Progress:
-- OpenAPI3 documentation with examples
-- Tests refactoring
+- Angular front-end
 
 ToDo:
 - Implement disappearing messages
 - Implement second profile with music and movie taste based matching 
-- Contenerize with Docker
-- Angular front-end
+- Containerize with Docker
 
 ## Used tech
 - Spring Boot
