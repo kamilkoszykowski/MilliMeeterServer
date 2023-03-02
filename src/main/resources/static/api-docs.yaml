@@ -1,1055 +1,1700 @@
 openapi: 3.0.1
 info:
-    title: 'MilliMeeter Server'
-    description: 'Just a dating app'
-    license:
-        name: 'Apache 2.0'
-        url: 'http://springdoc.org'
-    version: v0.0.1
+  title: 'MilliMeeter Server'
+  description: 'Just a dating app'
+  license:
+    name: 'Apache 2.0'
+    url: 'http://springdoc.org'
+  version: v0.0.1
 externalDocs:
-    description: 'SpringShop Wiki Documentation'
-    url: 'https://springshop.wiki.github.org/docs'
+  description: 'SpringShop Wiki Documentation'
+  url: 'https://springshop.wiki.github.org/docs'
 servers:
-    -
-        url: 'http://localhost:8080'
-        description: 'Generated server url'
+  - url: 'http://localhost:8080'
+    description: 'Generated server url'
 paths:
-    /api/v1/profiles:
-        get:
-            tags:
-                - Profile
-            summary: 'Find profiles to swipe'
-            operationId: findProfilesToSwipe
-            responses:
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                200:
-                    description: OK
-                    content:
-                        application/hal+json:
-                            examples:
-                                'Found profiles to swipe':
-                                    description: 'Found profiles to swipe'
-                                'No profiles to swipe found':
-                                    description: 'No profiles to swipe found'
-            security:
-                -
-                    bearer-key: []
-        put:
-            tags:
-                - Profile
-            summary: 'Update the profile'
-            operationId: update
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/UpdatedProfileDto'
-                required: true
-            responses:
-                200:
-                    description: OK
-                    content:
-                        application/hal+json:
-                            examples:
-                                'Profile updated':
-                                    description: 'Profile updated'
-                400:
-                    description: 'BAD REQUEST'
-                    content:
-                        application/json:
-                            examples:
-                                'Bad request':
-                                    description: 'Bad request'
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                        application/json:
-                            examples:
-                                'Not valid update request':
-                                    description: 'Not valid update request'
-            security:
-                -
-                    bearer-key: []
-        post:
-            tags:
-                - Profile
-            summary: 'Create the profile'
-            operationId: create_1
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            required:
-                                - body
-                                - photos
-                            type: object
-                            properties:
-                                body:
-                                    $ref: '#/components/schemas/RegistrationDto'
-                                photos:
-                                    type: array
-                                    items:
-                                        type: string
-                                        format: binary
-            responses:
-                409:
-                    description: CONFLICT
-                    content:
-                        text/plain:
-                            examples:
-                                'Profile already exists':
-                                    description: 'Profile already exists'
-                                    value: 'Profile already exists'
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Profile not created, too many photos uploaded':
-                                    description: 'Profile not created, too many photos uploaded'
-                                    value: 'Limit of 5 photos exceeded'
-                201:
-                    description: CREATED
-                    content:
-                        application/hal+json:
-                            examples:
-                                'Profile created':
-                                    description: 'Profile created'
-            security:
-                -
-                    bearer-key: []
-        delete:
-            tags:
-                - Profile
-            summary: 'Delete my profile'
-            operationId: deleteProfile
-            responses:
-                204:
-                    description: 'NO CONTENT'
-                    content:
-                        text/plain:
-                            examples:
-                                'Profile deleted':
-                                    description: 'Profile deleted'
-            security:
-                -
-                    bearer-key: []
-    /api/v1/profiles/photos:
-        put:
-            tags:
-                - Profile
-            summary: 'Upload the photo'
-            operationId: uploadPhoto
-            parameters:
-                -
-                    name: index
-                    in: query
-                    required: true
-                    schema:
-                        maximum: 4
-                        minimum: -1
-                        type: integer
-                        format: int32
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            required:
-                                - photos
-                            type: object
-                            properties:
-                                photos:
-                                    type: string
-                                    format: binary
-            responses:
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Photo not uploaded, limit already reached':
-                                    description: 'Photo not uploaded, limit already reached'
-                                    value: 'Limit of 5 photos reached'
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                        application/json:
-                            examples:
-                                'Not valid photo upload request':
-                                    description: 'Not valid photo upload request'
-                200:
-                    description: OK
-                    content:
-                        application/hal+json:
-                            examples:
-                                'Uploaded photo as last':
-                                    description: 'Uploaded photo as last'
-                                'Uploaded photo at certain index':
-                                    description: 'Uploaded photo at certain index'
-                400:
-                    description: 'BAD REQUEST'
-                    content:
-                        text/plain:
-                            examples:
-                                'Bad request':
-                                    description: 'Bad request'
-            security:
-                -
-                    bearer-key: []
-    '/api/v1/profiles/photos/{index}':
-        put:
-            tags:
-                - Profile
-            summary: 'Delete the photo by index'
-            operationId: deletePhoto
-            parameters:
-                -
-                    name: index
-                    in: path
-                    required: true
-                    schema:
-                        maximum: 4
-                        minimum: -1
-                        type: integer
-                        format: int32
-            responses:
-                400:
-                    description: 'BAD REQUEST'
-                    content:
-                        text/plain:
-                            examples:
-                                'Bad request':
-                                    description: 'Bad request'
-                200:
-                    description: OK
-                    content:
-                        application/json:
-                            examples:
-                                'Photo deleted':
-                                    description: 'Photo deleted'
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                        application/json:
-                            examples:
-                                'Not valid delete photo request':
-                                    description: 'Not valid delete photo request'
-            security:
-                -
-                    bearer-key: []
-    /api/v1/profiles/location:
-        put:
-            tags:
-                - Profile
-            summary: 'Update the location'
-            operationId: updateLocation
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/LocationDto'
-                required: true
-            responses:
-                400:
-                    description: 'BAD REQUEST'
-                    content:
-                        application/json:
-                            examples:
-                                'Bad request':
-                                    description: 'Bad request'
-                200:
-                    description: OK
-                    content:
-                        application/hal+json:
-                            examples:
-                                'Location updated':
-                                    description: 'Location updated'
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        application/json:
-                            examples:
-                                'Not valid update request':
-                                    description: 'Not valid update request'
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-            security:
-                -
-                    bearer-key: []
-    '/api/v1/messages/{id}':
-        put:
-            tags:
-                - Message
-            summary: 'Delete reaction from the message'
-            operationId: deleteReactionFromMessage
-            parameters:
-                -
-                    name: id
-                    in: path
-                    required: true
-                    schema:
-                        type: integer
-                        format: int64
-            responses:
-                200:
-                    description: OK
-                    content:
-                        application/hal+json:
-                            examples:
-                                'Deleted reaction':
-                                    description: 'Deleted reaction'
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Reaction not deleted, message not exists':
-                                    description: 'Reaction not deleted, message not exists'
-                                    value: 'Message not exists'
-                                'Reaction not deleted, profile not belongs to match':
-                                    description: 'Reaction not deleted, profile not belongs to match'
-                                    value: 'Profile not belongs to match'
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                        application/json:
-                            examples:
-                                'Not valid delete reaction request':
-                                    description: 'Not valid delete reaction request'
-            security:
-                - bearer-key: [  ]
-    '/api/v1/messages/{id}/{reaction}':
-        put:
-            tags:
-                - Message
-            summary: 'React to the message'
-            operationId: reactToMessage
-            parameters:
-                -
-                    name: id
-                    in: path
-                    required: true
-                    schema:
-                        type: integer
-                        format: int64
-                -
-                    name: reaction
-                    in: path
-                    required: true
-                    schema:
-                        pattern: LIKE|SUPER|CARE|HAHA|WOW|CRY|WRR
-                        type: string
-            responses:
-                200:
-                    description: OK
-                    content:
-                        application/hal+json:
-                            examples:
-                                'Reacted to message':
-                                    description: 'Reacted to message'
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Not reacted, message not exists':
-                                    description: 'Not reacted, message not exists'
-                                    value: 'Message not exists'
-                                'Not reacted, profile not belongs to match':
-                                    description: 'Not reacted, profile not belongs to match'
-                                    value: 'Profile not belongs to match'
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                        application/json:
-                            examples:
-                                'Not valid react to message request':
-                                    description: 'Not valid react to message request'
-            security:
-                -
-                    bearer-key: []
-    /api/v1/messages/setAsDelivered:
-        put:
-            tags:
-                - Message
-            summary: 'Set the messages as delivered'
-            operationId: setMessagesAsDelivered
-            responses:
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                200:
-                    description: OK
-                    content:
-                        text/plain:
-                            examples:
-                                'Status set as delivered':
-                                    description: 'Status set as delivered'
-            security:
-                -
-                    bearer-key: []
-    '/api/v1/messages/read/{matchId}':
-        put:
-            tags:
-                - Message
-            summary: 'Read messages in the conversation'
-            operationId: readMessagesInConversation
-            parameters:
-                -
-                    name: matchId
-                    in: path
-                    required: true
-                    schema:
-                        type: integer
-                        format: int64
-            responses:
-                200:
-                    description: OK
-                    content:
-                        text/plain:
-                            examples:
-                                'Messages in conversation read':
-                                    description: 'Messages in conversation read'
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Not read, match not exists':
-                                    description: 'Not read, match not exists'
-                                    value: 'Match not exists'
-                                'Not read, profile not belongs to match':
-                                    description: 'Not read, profile not belongs to match'
-                                    value: 'Profile not belongs to match'
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                        application/json:
-                            examples:
-                                'Not valid read messages in conversation request':
-                                    description: 'Not valid read messages in conversation request'
-            security:
-                -
-                    bearer-key: []
-    /api/v1/users:
-        post:
-            tags:
-                - User
-            summary: 'Create user'
-            operationId: create
-            responses:
-                409:
-                    description: CONFLICT
-                    content:
-                        text/plain:
-                            examples:
-                                'User already exists':
-                                    description: 'User already exists'
-                                    value: 'User already exists'
-                201:
-                    description: CREATED
-                    content:
-                        application/hal+json:
-                            schema:
-                                $ref: "#/components/schemas/UserEntity"
-                            examples:
-                                'User created':
-                                    description: 'User created'
-            security:
-                -
-                    bearer-key: []
-    '/api/v1/swipes/{id}/{direction}':
-        post:
-            tags:
-                - Swipe
-            summary: 'Swipe profile with given id'
-            operationId: swipe
-            parameters:
-                -
-                    name: id
-                    in: path
-                    required: true
-                    schema:
-                        type: integer
-                        format: int64
-                -
-                    name: direction
-                    in: path
-                    required: true
-                    schema:
-                        pattern: LEFT|RIGHT
-                        type: string
-            responses:
-                201:
-                    description: CREATED
-                    content:
-                        application/hal+json:
-                            schema:
-                                oneOf:
-                                    - $ref: '#/components/schemas/Swipe'
-                                    - $ref: '#/components/schemas/Match'
-                            examples:
-                                'Swiped left':
-                                    description: 'Swiped left'
-                                'Swiped right and matched':
-                                    description: 'Swiped right and matched'
-                                'Swiped right':
-                                    description: 'Swiped right'
-                409:
-                    description: CONFLICT
-                    content:
-                        text/plain:
-                            examples:
-                                'Swiped left already swiped':
-                                    description: 'Swiped left already swiped'
-                                    value: 'You already swiped that profile'
-                                'Swiped right already swiped':
-                                    description: 'Swiped right already swiped'
-                                    value: 'You already swiped that profile'
-                404:
-                    description: 'NOT EXISTS'
-                    content:
-                        text/plain:
-                            examples:
-                                'Swiped left not existing profile':
-                                    description: 'Swiped left not existing profile'
-                                    value: 'Swiped profile not exists'
-                                'Swiped right not existing profile':
-                                    description: 'Swiped right not existing profile'
-                                    value: 'Swiped profile not exists'
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Swiped left yourself':
-                                    description: 'Swiped left yourself'
-                                    value: 'You swiped yourself'
-                                'Swiped left with no swipes left':
-                                    description: 'Swiped left with no swipes left'
-                                    value: 'No swipes left'
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                                'Swiped right yourself':
-                                    description: 'Swiped right yourself'
-                                    value: 'You swiped yourself'
-                                'Swiped right with no swipes left':
-                                    description: 'Swiped right with no swipes left'
-                                    value: 'No swipes left'
-                        application/json:
-                            examples:
-                                'Not valid swipe left request':
-                                    description: 'Not valid swipe left request'
-                                'Not valid swipe right request':
-                                    description: 'Not valid swipe right request'
-            security:
-                -
-                    bearer-key: []
-    /api/v1/messages:
-        post:
-            tags:
-                - Message
-            summary: 'Send the message'
-            operationId: send
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/SentMessageDto'
-                required: true
-            responses:
-                400:
-                    description: 'BAD REQUEST'
-                    content:
-                        application/json:
-                            examples:
-                                'Bad request':
-                                    description: 'Bad request'
-                201:
-                    description: CREATED
-                    content:
-                        application/hal+json:
-                            examples:
-                                'Message sent':
-                                    description: 'Message sent'
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Message not sent, match not exists':
-                                    description: 'Message not sent, match not exists'
-                                    value: 'Match not exists'
-                                'Message not sent, parent message not exists':
-                                    description: 'Message not sent, parent message not exists'
-                                    value: 'Parent message not exists'
-                                'Message not sent, profile not belongs to match':
-                                    description: 'Message not sent, profile not belongs to match'
-                                    value: 'Profile not belongs to match'
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                        application/json:
-                            examples:
-                                'Not valid send request':
-                                    description: 'Not valid send request'
-            security:
-                -
-                    bearer-key: []
-    /api/v1/profiles/swipesLeft:
-        get:
-            tags:
-                - Profile
-            summary: 'Get swipes left count'
-            operationId: getSwipesLeftCount
-            responses:
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                200:
-                    description: OK
-                    content:
-                        text/plain:
-                            examples:
-                                'Got swipes left number':
-                                    description: 'Got swipes left number'
-            security:
-                -
-                    bearer-key: []
-    /api/v1/profiles/me:
-        get:
-            tags:
-                - Profile
-            summary: 'Get my profile'
-            operationId: getMyProfile
-            responses:
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Profile not exist':
-                                    description: 'Profile not exist'
-                                    value: 'Profile not exists'
-                200:
-                    description: OK
-                    content:
-                        application/hal+json:
-                            examples:
-                                'Got my profile':
-                                    description: 'Got my profile'
-            security:
-                -
-                    bearer-key: []
-    /api/v1/matches:
-        get:
-            tags:
-                - Match
-            summary: 'Get matches without messages'
-            operationId: findMatches
-            responses:
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                200:
-                    description: OK
-                    content:
-                        application/hal+json:
-                            examples:
-                                'No matches found':
-                                    description: 'No matches found'
-                                'Matches found':
-                                    description: 'Matches found'
-                                    value: FIND_MATCHES_OK_WITH_MATCHES_RESPONSE
-            security:
-                -
-                    bearer-key: []
-    /api/v1/conversations:
-        get:
-            tags:
-                - Match
-            summary: 'Get matches with messages'
-            operationId: findMatchesWithMessages
-            responses:
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                200:
-                    description: OK
-                    content:
-                        application/hal+json:
-                            examples:
-                                'No matches with messages found':
-                                    description: 'No matches with messages found'
-                                'Found matches with messages':
-                                    description: 'Found matches with messages'
-            security:
-                -
-                    bearer-key: []
-    '/api/v1/conversations/{id}':
-        get:
-            tags:
-                - Message
-            summary: 'Get the conversation by match id'
-            operationId: findMessagesByMatchId
-            parameters:
-                -
-                    name: id
-                    in: path
-                    required: true
-                    schema:
-                        type: integer
-                        format: int64
-            responses:
-                200:
-                    description: OK
-                    content:
-                        application/hal+json:
-                            examples:
-                                'Got conversation with messages':
-                                    description: 'Got conversation with messages'
-                                'Got conversation without messages':
-                                    description: 'Got conversation without messages'
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Messages not found, match not exists':
-                                    description: 'Messages not found, match not exists'
-                                    value: 'Match not exists'
-                                'Messages not found, profile not belongs to match':
-                                    description: 'Messages not found, profile not belongs to match'
-                                    value: 'Profile not belongs to match'
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                        application/json:
-                            examples:
-                                'Not valid find conversation messages request':
-                                    description: 'Not valid find conversation messages request'
-            security:
-                -
-                    bearer-key: []
-    '/api/v1/matches/{id}':
-        delete:
-            tags:
-                - Match
-            summary: 'Delete match by the id'
-            operationId: deleteMatch
-            parameters:
-                -
-                    name: id
-                    in: path
-                    required: true
-                    schema:
-                        type: integer
-                        format: int64
-            responses:
-                204:
-                    description: 'NO CONTENT'
-                    content:
-                        text/plain:
-                            examples:
-                                'Match deleted':
-                                    description: 'Match deleted'
-                422:
-                    description: 'UNPROCESSABLE ENTITY'
-                    content:
-                        text/plain:
-                            examples:
-                                'Match not exists':
-                                    description: 'Match not exists'
-                                    value: 'Match not exists'
-                                'Profile not exists':
-                                    description: 'Profile not exists'
-                                    value: 'Profile not exists'
-                        application/json:
-                            examples:
-                                'Not valid delete request':
-                                    description: 'Not valid delete request'
-            security:
-                -
-                    bearer-key: []
-components:
-    schemas:
-        UpdatedProfileDto:
-            required:
-                - ageRangeMaximum
-                - ageRangeMinimum
-                - lastLatitude
-                - lastLongitude
-                - lookingFor
-                - mySong
-                - searchDistance
-            type: object
-            properties:
-                description:
-                    maxLength: 500
-                    minLength: 0
-                    type: string
-                mySong:
-                    pattern: '[a-zA-Z0-9]*'
-                    type: string
-                lastLatitude:
-                    maximum: 90
-                    minimum: -90
-                    type: number
-                    format: double
-                lastLongitude:
-                    maximum: 90
-                    minimum: -90
-                    type: number
-                    format: double
-                lookingFor:
-                    pattern: MEN|WOMEN|BOTH
-                    type: string
-                searchDistance:
-                    maximum: 100
-                    minimum: 1
-                    type: integer
-                    format: int32
-                ageRangeMinimum:
-                    maximum: 100
-                    minimum: 18
-                    type: integer
-                    format: int32
-                ageRangeMaximum:
-                    maximum: 100
-                    minimum: 18
-                    type: integer
-                    format: int32
-        LocationDto:
-            required:
-                - lastLatitude
-                - lastLongitude
-            type: object
-            properties:
-                lastLatitude:
-                    maximum: 90
-                    minimum: -90
-                    type: number
-                    format: double
-                lastLongitude:
-                    maximum: 90
-                    minimum: -90
-                    type: number
-                    format: double
-        RegistrationDto:
-            required:
-                - ageRangeMaximum
-                - ageRangeMinimum
-                - dateOfBirth
-                - firstName
-                - gender
-                - lastLatitude
-                - lastLongitude
-                - lookingFor
-                - mySong
-                - searchDistance
-            type: object
-            properties:
-                firstName:
-                    pattern: '[A-Z][a-z]{1,19}'
-                    type: string
-                dateOfBirth:
-                    type: string
-                    format: date
-                gender:
-                    pattern: MAN|WOMAN
-                    type: string
-                description:
-                    maxLength: 500
-                    minLength: 0
-                    type: string
-                mySong:
-                    pattern: '[a-zA-Z0-9]*'
-                    type: string
-                lastLatitude:
-                    maximum: 90
-                    minimum: -90
-                    type: number
-                    format: double
-                lastLongitude:
-                    maximum: 90
-                    minimum: -90
-                    type: number
-                    format: double
-                lookingFor:
-                    pattern: MEN|WOMEN|BOTH
-                    type: string
-                searchDistance:
-                    maximum: 100
-                    minimum: 1
-                    type: integer
-                    format: int32
-                ageRangeMinimum:
-                    maximum: 100
-                    minimum: 18
-                    type: integer
-                    format: int32
-                ageRangeMaximum:
-                    maximum: 100
-                    minimum: 18
-                    type: integer
-                    format: int32
-        SentMessageDto:
-            required:
-                - content
-                - matchId
-            type: object
-            properties:
-                matchId:
-                    type: integer
-                    format: int64
-                content:
-                    maxLength: 1000
-                    minLength: 1
-                    type: string
-                parentMessageId:
-                    type: integer
-                    format: int64
-        User:
-            description: JSON with HAL response object for successfully created user
-            type: object
-            properties:
-                id:
-                    type: string
-                profileId:
-                    type: integer
-                    format: int64
-                _links:
+  /api/v1/profiles:
+    get:
+      tags:
+        - Profile
+      summary: 'Find profiles to swipe'
+      operationId: findProfilesToSwipe
+      responses:
+        200:
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                properties:
+                  _embedded:
+                    type: object
+                    properties:
+                      profileToSwipeDtoList:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ProfileToSwipeDto'
+              examples:
+                'Found profiles to swipe':
+                  description: 'Found profiles to swipe'
+                  value:
+                    - { "_embedded": { "profileToSwipeDtoList": [ { "id": 98,"firstName": "Gloria","age": 23,"gender": "WOMAN","photos": [ "anotherPhoto1.jpg","anotherPhoto2.jpg" ],"description": "Hi, I'm another profile who takes part in integration testing of that API","mySong": "another mySong","distanceAway": 69,"_links": { "swipe left": { "href": "http://localhost/api/v1/swipes/98/LEFT" },"swipe right": { "href": "http://localhost/api/v1/swipes/98/RIGHT" } } } ] } }
+                'No profiles to swipe found':
+                  description: 'No profiles to swipe found'
+                  value: '{}'
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
                     type: array
                     items:
-                        properties:
-                            link:
-                                type: object
-                                properties:
-                                    href:
-                                        type: string
-        Swipe:
-            description: JSON with HAL response object for successfully created swipe
-            type: object
-            properties:
-                id:
-                    type: integer
-                    format: int64
-                senderId:
-                    type: integer
-                    format: int64
-                receiverId:
-                    type: integer
-                    format: int64
-                direction:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+      security:
+        - bearer-key: [ ]
+    post:
+      tags:
+        - Profile
+      summary: 'Create the profile'
+      operationId: create_1
+      requestBody:
+        description: Request body must contain JSON-formatted RegistrationDto part with key 'body' and .jpg image files with 3/4 aspect ratio array part with key 'photos'
+        content:
+          multipart/form-data:
+            schema:
+              required:
+                - body
+                - photos
+              type: object
+              properties:
+                body:
+                  $ref: '#/components/schemas/RegistrationDto'
+                photos:
+                  type: array
+                  items:
                     type: string
-                swipedAt:
-                    type: string
-                    format: date-time
-                _links:
+                    format: binary
+      responses:
+        201:
+          description: CREATED
+          content:
+            application/hal+json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+              examples:
+                'Profile created':
+                  description: 'Profile created'
+                  value:
+                    - { "id": 1236,"firstName": "Testuser","dateOfBirth": "2000-01-01","gender": "MAN","photos": [ "1677595063793a69119f0-f701-4f3d-9a2e-e0842d00c9db.jpg","167759506379448cd22fd-2737-4cc2-bd02-2e4907b9e47f.jpg","167759506379455f85b44-a462-47a7-9198-c27a77a9eac2.jpg","167759506379534fc8288-e1ec-4047-afb2-6929fd5bef28.jpg","16775950637951371bb71-901b-4bc9-a196-35694bb452f4.jpg" ],"description": "Hi, I'm user who takes part in integration testing :)","mySong": "mySong","lastLatitude": 90.0,"lastLongitude": 90.0,"createdAt": "2023-02-28T15:37:43.7973508","swipesLeft": 50,"waitUntil": null,"lookingFor": "WOMEN","searchDistance": 100,"ageRangeMinimum": 18,"ageRangeMaximum": 40,"_links": { "update": { "href": "http://localhost/api/v1/profiles" },"delete": { "href": "http://localhost/api/v1/profiles" } } }
+        400:
+          description: 'BAD REQUEST'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
                     type: array
                     items:
-                        properties:
-                            link:
-                                type: object
-                                properties:
-                                    href:
-                                        type: string
-        Match:
-            description: JSON with HAL response object for successfully created user
-            type: object
-            properties:
-                id:
-                    type: string
-                profileId:
-                    type: integer
-                    format: int64
-                _links:
+                      type: string
+              examples:
+                'Bad request':
+                  description: 'Bad request'
+                  value:
+                    - { "errors": [ "Required request part 'body' is not present" ] }
+        409:
+          description: CONFLICT
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
                     type: array
                     items:
-                        properties:
-                            link:
-                                type: object
-                                properties:
-                                    href:
-                                        type: string
-        Profile:
-            description: JSON with HAL response object for successfully created user
-            type: object
-            properties:
-                id:
-                    type: string
-                profileId:
-                    type: integer
-                    format: int64
-                _links:
+                      type: string
+              examples:
+                'Profile already exists':
+                  description: 'Profile already exists'
+                  value: '{"errors":["Profile already exists"]}'
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
                     type: array
                     items:
-                        properties:
-                            link:
-                                type: object
-                                properties:
-                                    href:
-                                        type: string
-        Message:
-            description: JSON with HAL response object for successfully created user
-            type: object
-            properties:
-                id:
-                    type: string
-                profileId:
-                    type: integer
-                    format: int64
-                _links:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Invalid request data':
+                  description: 'Invalid request data'
+                  value: '{"errors":["Limit of 5 photos exceeded"]}'
+                'Invalid photos':
+                  description: 'Invalid photos'
+                  value: '{"errors":["Photos must have 3/4 aspect ratio and .jpg extension"]}'
+      security:
+        - bearer-key: [ ]
+    put:
+      tags:
+        - Profile
+      summary: 'Update the profile'
+      operationId: update
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatedProfileDto'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+              examples:
+                'Profile updated':
+                  description: 'Profile updated'
+                  value:
+                    - { "id": 1236,"firstName": "Testuser","dateOfBirth": "2000-01-01","gender": "MAN","photos": [ "photo1.jpg","photo2.jpg","photo3.jpg","photo4.jpg","photo5.jpg" ],"description": "string","mySong": "8CRUfdqO9fpirMnEMqNYbHsWsSS9UO7nySTaa1e2pf5cbuWgwH307TrCBwX07N","lastLatitude": 1.0,"lastLongitude": 1.0,"createdAt": "2023-02-28T15:37:42.66633","swipesLeft": 50,"waitUntil": null,"lookingFor": "WOMEN","searchDistance": 100,"ageRangeMinimum": 18,"ageRangeMaximum": 100,"_links": { "update": { "href": "http://localhost/api/v1/profiles" },"delete": { "href": "http://localhost/api/v1/profiles" } } }
+        400:
+          description: 'BAD REQUEST'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
                     type: array
                     items:
-                        properties:
-                            link:
-                                type: object
-                                properties:
-                                    href:
-                                        type: string
+                      type: string
+              examples:
+                'Bad request':
+                  description: 'Bad request'
+                  value: '{"errors":["The last latitude is required"]}'
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+                'Invalid request data':
+                  description: 'Invalid request data'
+                  value: '{"errors":["The latitude must be between -90 and 90","Looking for value must be MEN or WOMEN or BOTH","The maximum age must be between 18 and 100","The longitude must be between -180 and 180","The search distance must be between 1 and 100","The minimum age must be between 18 and 100"]}'
 
-    securitySchemes:
-        bearer-key:
-            type: http
-            scheme: bearer
-            bearerFormat: JWT
+      security:
+        - bearer-key: [ ]
+    delete:
+      tags:
+        - Profile
+      summary: 'Delete my profile'
+      operationId: deleteProfile
+      responses:
+        204:
+          description: 'NO CONTENT'
+          content:
+            application/json:
+              examples:
+                'Profile deleted':
+                  description: 'Profile deleted'
+      security:
+        - bearer-key: [ ]
+  /api/v1/profiles/photos:
+    put:
+      tags:
+        - Profile
+      summary: 'Upload the photo'
+      operationId: uploadPhoto
+      parameters:
+        - name: index
+          in: query
+          required: true
+          schema:
+            maximum: 4
+            minimum: -1
+            type: integer
+            format: int32
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              required:
+                - photos
+              type: object
+              properties:
+                photos:
+                  type: string
+                  format: binary
+      responses:
+        200:
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Profile'
+              examples:
+                'Uploaded photo as last':
+                  description: 'Uploaded photo as last'
+                  value:
+                    - { "id": 1236,"firstName": "Testuser","dateOfBirth": "2000-01-01","gender": "MAN","photos": [ "photo1.jpg","photo2.jpg","16775950635031c1e5048-4eb3-4abb-b667-041af125d5c0.jpg" ],"description": "Hi, I'm user who takes part in integration testing :)","mySong": "mySong","lastLatitude": 90.0,"lastLongitude": 90.0,"createdAt": "2023-02-28T15:37:42.66633","swipesLeft": 50,"waitUntil": null,"lookingFor": "WOMEN","searchDistance": 100,"ageRangeMinimum": 18,"ageRangeMaximum": 40,"_links": { "update": { "href": "http://localhost/api/v1/profiles" },"delete": { "href": "http://localhost/api/v1/profiles" } } }
+                'Uploaded photo at certain index':
+                  description: 'Uploaded photo at certain index'
+                  value:
+                    - { "id": 1236,"firstName": "Testuser","dateOfBirth": "2000-01-01","gender": "MAN","photos": [ "photo1.jpg","1677595063542557b8526-239d-404c-a4c4-125cdb57f4ae.jpg" ],"description": "Hi, I'm user who takes part in integration testing :)","mySong": "mySong","lastLatitude": 90.0,"lastLongitude": 90.0,"createdAt": "2023-02-28T15:37:42.66633","swipesLeft": 50,"waitUntil": null,"lookingFor": "WOMEN","searchDistance": 100,"ageRangeMinimum": 18,"ageRangeMaximum": 40,"_links": { "update": { "href": "http://localhost/api/v1/profiles" },"delete": { "href": "http://localhost/api/v1/profiles" } } }
+        400:
+          description: 'BAD REQUEST'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'Bad request':
+                  description: 'Bad request'
+                  value:
+                    - { "errors": [ "Bad argument type. String 'a' instead of int" ] }
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+                'Invalid request data':
+                  description: 'Invalid request data'
+                  value: '{"errors":["Photo number must be between -1 and 4"]}'
+                'Invalid photos':
+                  description: 'Invalid photos'
+                  value: '{"errors":["Photos must have 3/4 aspect ratio and .jpg extension"]}'
+                'Limit reached':
+                  description: 'Limit of 5 photos already reached'
+                  value: '{"errors":["Limit of 5 photos reached"]}'
+      security:
+        - bearer-key: [ ]
+  '/api/v1/profiles/photos/{index}':
+    put:
+      tags:
+        - Profile
+      summary: 'Delete the photo by index'
+      operationId: deletePhoto
+      parameters:
+        - name: index
+          in: path
+          required: true
+          schema:
+            maximum: 4
+            minimum: -1
+            type: integer
+            format: int32
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+              examples:
+                'Photo deleted':
+                  description: 'Photo deleted'
+                  value:
+                    - { "id": 1236,"firstName": "Testuser","dateOfBirth": "2000-01-01","gender": "MAN","photos": [ "photo2.jpg","photo3.jpg","photo4.jpg","photo5.jpg" ],"description": "Hi, I'm user who takes part in integration testing :)","mySong": "mySong","lastLatitude": 90.0,"lastLongitude": 90.0,"createdAt": "2023-02-28T15:37:42.66633","swipesLeft": 50,"waitUntil": null,"lookingFor": "WOMEN","searchDistance": 100,"ageRangeMinimum": 18,"ageRangeMaximum": 40 }
+        400:
+          description: 'BAD REQUEST'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'Bad request':
+                  description: 'Bad request'
+                  value:
+                    - { "errors": [ "Bad argument type. String 'a' instead of int" ] }
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+                'Invalid request data':
+                  description: 'Invalid request data'
+                  value: '{"errors":["Photo number must be between 0 and 4"]}'
+                'Deleting only remaining photo':
+                  description: 'Deleting only remaining photo'
+                  value: '{"errors":["Cannot delete the only remaining photo"]}'
+      security:
+        - bearer-key: [ ]
+  /api/v1/profiles/location:
+    put:
+      tags:
+        - Profile
+      summary: 'Update the location'
+      operationId: updateLocation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationDto'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+              examples:
+                'Location updated':
+                  description: 'Location updated'
+                  value:
+                    - { "id": 1236,"firstName": "Testuser","dateOfBirth": "2000-01-01","gender": "MAN","photos": [ "photo1.jpg","photo2.jpg" ],"description": "Hi, I'm user who takes part in integration testing :)","mySong": "mySong","lastLatitude": 0.0,"lastLongitude": 1.0,"createdAt": "2023-02-28T15:37:42.66633","swipesLeft": 50,"waitUntil": null,"lookingFor": "WOMEN","searchDistance": 100,"ageRangeMinimum": 18,"ageRangeMaximum": 40,"_links": { "update": { "href": "http://localhost/api/v1/profiles" },"delete": { "href": "http://localhost/api/v1/profiles" } } }
+        400:
+          description: 'BAD REQUEST'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'Bad request':
+                  description: 'Bad request'
+                  value: '{"errors":["The last latitude is required"]}'
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+                'Invalid request data':
+                  description: 'Invalid request data'
+                  value: '{"errors":["The latitude must be between -90 and 90","The longitude must be between -180 and 180"]}'
+      security:
+        - bearer-key: [ ]
+  '/api/v1/messages/{id}':
+    put:
+      tags:
+        - Message
+      summary: 'Delete reaction from the message'
+      operationId: deleteReactionFromMessage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              examples:
+                'Deleted reaction':
+                  description: 'Deleted reaction'
+                  value: '{"id":663,"senderId":1236,"matchId":1471,"content":"content","parentMessageId":null,"senderReaction":null,"receiverReaction":null,"status":"SENT","sentAt":"2023-02-28T15:04:59.211537","seenAt":null,"_links":{"reply":{"href":"http://localhost/api/v1/messages"},"react like":{"href":"http://localhost/api/v1/messages/663/LIKE"},"react super":{"href":"http://localhost/api/v1/messages/663/SUPER"},"react haha":{"href":"http://localhost/api/v1/messages/663/HAHA"},"react cry":{"href":"http://localhost/api/v1/messages/663/CRY"},"react wrr":{"href":"http://localhost/api/v1/messages/663/WRR"},"react care":{"href":"http://localhost/api/v1/messages/663/CARE"},"delete reaction":{"href":"http://localhost/api/v1/messages/663"}}}'
+        400:
+          description: 'BAD REQUEST'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'Bad request':
+                  description: 'Bad request'
+                  value:
+                    - { "errors": [ "Bad argument type. String 'a' instead of Long" ] }
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+                'Invalid request data':
+                  description: 'Invalid request data'
+                  value: '{"errors":["The message id must be a positive number"]}'
+                'Message not exists':
+                  description: 'Message not exists'
+                  value: '{"errors":["Message not exists"]}'
+                'Profile not belongs to match':
+                  description: 'Profile not belongs to match containing given message'
+                  value: '{"errors":["Profile not belongs to match containing given message"]}'
+      security:
+        - bearer-key: [ ]
+  '/api/v1/messages/{id}/{reaction}':
+    put:
+      tags:
+        - Message
+      summary: 'React to the message'
+      operationId: reactToMessage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: reaction
+          in: path
+          required: true
+          schema:
+            pattern: LIKE|SUPER|CARE|HAHA|WOW|CRY|WRR
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              examples:
+                'Reacted to message':
+                  description: 'Reacted to message'
+                  value: '{"id":656,"senderId":1236,"matchId":1461,"content":"content","parentMessageId":null,"senderReaction":"LIKE","receiverReaction":null,"status":"SENT","sentAt":"2023-02-28T15:04:58.786149","seenAt":null,"_links":{"reply":{"href":"http://localhost/api/v1/messages"},"react like":{"href":"http://localhost/api/v1/messages/656/LIKE"},"react super":{"href":"http://localhost/api/v1/messages/656/SUPER"},"react haha":{"href":"http://localhost/api/v1/messages/656/HAHA"},"react cry":{"href":"http://localhost/api/v1/messages/656/CRY"},"react wrr":{"href":"http://localhost/api/v1/messages/656/WRR"},"react care":{"href":"http://localhost/api/v1/messages/656/CARE"},"delete reaction":{"href":"http://localhost/api/v1/messages/656"}}}'
+        400:
+          description: 'BAD REQUEST'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'Bad request':
+                  description: 'Bad request'
+                  value:
+                    - { "errors": [ "Bad argument type. String 'a' instead of Long" ] }
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+                'Invalid request data':
+                  description: 'Invalid request data'
+                  value: '{"errors":["Reaction must have value LIKE, SUPER, CARE, HAHA, WOW, CRY or WRR","The message id must be a positive number"]}'
+                'Message not exists':
+                  description: 'Message not exists'
+                  value: '{"errors":["Message not exists"]}'
+                'Profile not belongs to match':
+                  description: 'Profile not belongs to match containing given message'
+                  value: '{"errors":["Profile not belongs to match containing given message"]}'
+      security:
+        - bearer-key: [ ]
+  /api/v1/messages/setAsDelivered:
+    put:
+      tags:
+        - Message
+      summary: 'Set the messages as delivered'
+      operationId: setMessagesAsDelivered
+      responses:
+        204:
+          description: 'NO CONTENT'
+          content:
+            application/json:
+              examples:
+                'Status set as delivered':
+                  description: 'Status set as delivered'
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+      security:
+        - bearer-key: [ ]
+  '/api/v1/messages/read/{matchId}':
+    put:
+      tags:
+        - Message
+      summary: 'Read messages in the conversation'
+      operationId: readMessagesInConversation
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        204:
+          description: 'NO CONTENT'
+          content:
+            application/json:
+              examples:
+                'Messages in conversation read':
+                  description: 'Messages in conversation read'
+        400:
+          description: 'BAD REQUEST'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'Bad request':
+                  description: 'Bad request'
+                  value:
+                    - { "errors": [ "Bad argument type. String 'a' instead of Long" ] }
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+                'Invalid request data':
+                  description: 'Invalid request data'
+                  value: '{"errors":["The match id must be a positive number"]}'
+                'Match not exists':
+                  description: 'Match not exists'
+                  value: '{"errors":["Match not exists"]}'
+                'Profile not belongs to match':
+                  description: 'Profile not belongs to match'
+                  value: '{"errors":["Profile not belongs to match"]}'
+      security:
+        - bearer-key: [ ]
+  /api/v1/users:
+    post:
+      tags:
+        - User
+      summary: 'Create user'
+      operationId: create
+      responses:
+        201:
+          description: CREATED
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/User"
+              examples:
+                'User created':
+                  description: 'User created'
+                  value: '{"id":"mockUser","profileId":1238,"_links":{"create profile":{"href":"http://localhost/api/v1/profiles"}}}'
+        409:
+          description: CONFLICT
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User already exists':
+                  description: 'User already exists'
+                  value: '{"errors":["User already exists"]}'
+      security:
+        - bearer-key: [ ]
+  '/api/v1/swipes/{id}/{direction}':
+    post:
+      tags:
+        - Swipe
+      summary: 'Swipe profile with given id'
+      operationId: swipe
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: direction
+          in: path
+          required: true
+          schema:
+            pattern: LEFT|RIGHT
+            type: string
+      responses:
+        201:
+          description: CREATED
+          content:
+            application/hal+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Swipe'
+                  - $ref: '#/components/schemas/Match'
+              examples:
+                'Swiped left':
+                  description: 'Swiped left'
+                  value: '{"id":710,"senderId":1236,"receiverId":98,"direction":"LEFT","swipedAt":"2023-02-28T17:59:31.190875","_links":{"swipes left amount":{"href":"http://localhost/api/v1/profiles/swipesLeft"}}}'
+                'Swiped right and matched':
+                  description: 'Swiped right and matched'
+                  value: '{"id":1474,"profileId1":1236,"profileId2":98,"matchedAt":"2023-02-28T17:59:30.9436547","_links":{"conversation":{"href":"http://localhost/api/v1/conversations/1474"},"send message":{"href":"http://localhost/api/v1/messages"},"delete":{"href":"http://localhost/api/v1/matches/1474"},"swipes left amount":{"href":"http://localhost/api/v1/profiles/swipesLeft"}}}'
+                'Swiped right':
+                  description: 'Swiped right'
+                  value: '{"id":709,"senderId":1236,"receiverId":98,"direction":"RIGHT","swipedAt":"2023-02-28T17:59:31.1448436","_links":{"swipes left amount":{"href":"http://localhost/api/v1/profiles/swipesLeft"}}}'
+        400:
+          description: 'BAD REQUEST'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'Bad request':
+                  description: 'Bad request'
+                  value:
+                    - { "errors": [ "Bad argument type. String 'a' instead of Long" ] }
+        404:
+          description: 'NOT EXISTS'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'Swiped left not existing profile':
+                  description: 'Swiped left not existing profile'
+                  value: '{"errors":["Swiped profile not exists"]}'
+                'Swiped right not existing profile':
+                  description: 'Swiped right not existing profile'
+                  value: '{"errors":["Swiped profile not exists"]}'
+        409:
+          description: 'CONFLICT'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'Swiped left already swiped':
+                  description: 'Swiped left already swiped'
+                  value: '{"errors":["You already swiped that profile"]}'
+                'Swiped right already swiped':
+                  description: 'Swiped right already swiped'
+                  value: '{"errors":["You already swiped that profile"]}'
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+                'Invalid request data':
+                  description: 'Invalid request data'
+                  value: '{"errors":["The swipe value must be LEFT or RIGHT","Profile id must be a positive number"]}'
+                'Swiped yourself':
+                  description: 'Swiped yourself'
+                  value: '{"errors":["You swiped yourself"]}'
+                'No swipes left':
+                  description: 'No swipes left'
+                  value: '{"errors":["No swipes left"]}'
+      security:
+        - bearer-key: [ ]
+  /api/v1/messages:
+    post:
+      tags:
+        - Message
+      summary: 'Send the message'
+      operationId: send
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SentMessageDto'
+        required: true
+      responses:
+        201:
+          description: CREATED
+          content:
+            application/hal+json:
+              schema:
+                $ref: '#/components/schemas/Message'
+              examples:
+                'Message sent':
+                  description: 'Message sent'
+                  value: '{"id":654,"senderId":1236,"matchId":1458,"content":"content","parentMessageId":null,"senderReaction":null,"receiverReaction":null,"status":"SENT","sentAt":"2023-02-28T15:04:58.5429277","seenAt":null,"_links":{"reply":{"href":"http://localhost/api/v1/messages"},"react like":{"href":"http://localhost/api/v1/messages/654/LIKE"},"react super":{"href":"http://localhost/api/v1/messages/654/SUPER"},"react haha":{"href":"http://localhost/api/v1/messages/654/HAHA"},"react cry":{"href":"http://localhost/api/v1/messages/654/CRY"},"react wrr":{"href":"http://localhost/api/v1/messages/654/WRR"},"react care":{"href":"http://localhost/api/v1/messages/654/CARE"},"delete reaction":{"href":"http://localhost/api/v1/messages/654"}}}'
+        400:
+          description: 'BAD REQUEST'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'Bad request':
+                  description: 'Bad request'
+                  value: '{"errors":["The match id is required"]}'
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+                'Invalid request data':
+                  description: 'Invalid request data'
+                  value: '{"errors":["The match id must be a positive number"]}'
+                'Match not exists':
+                  description: 'Match not exists'
+                  value: '{"errors":["Match not exists"]}'
+                'Parent message not exists':
+                  description: 'Parent message not exists'
+                  value: '{"errors":["Parent message not exists"]}'
+                'Profile not belongs to match':
+                  description: 'Profile not belongs to match'
+                  value: '{"errors":["Profile not belongs to match"]}'
+      security:
+        - bearer-key: [ ]
+  /api/v1/profiles/swipesLeft:
+    get:
+      tags:
+        - Profile
+      summary: 'Get swipes left count'
+      operationId: getSwipesLeftCount
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int32
+              examples:
+                'Got swipes left number':
+                  description: 'Got swipes left number'
+                  value: '50'
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+      security:
+        - bearer-key: [ ]
+  /api/v1/profiles/me:
+    get:
+      tags:
+        - Profile
+      summary: 'Get my profile'
+      operationId: getMyProfile
+      responses:
+        200:
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: '#/components/schemas/MyProfileDto'
+              examples:
+                'Got my profile':
+                  description: 'Got my profile'
+                  value:
+                    - { "firstName": "Testuser","dateOfBirth": "2000-01-01","gender": "MAN","photos": [ "photo1.jpg","1677595063542557b8526-239d-404c-a4c4-125cdb57f4ae.jpg" ],"description": "Hi, I'm user who takes part in integration testing :)","mySong": "mySong","lookingFor": "WOMEN","searchDistance": 100,"ageRangeMinimum": 18,"ageRangeMaximum": 40,"_links": { "update": { "href": "http://localhost/api/v1/profiles" },"delete": { "href": "http://localhost/api/v1/profiles" } } }
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+      security:
+        - bearer-key: [ ]
+  /api/v1/matches:
+    get:
+      tags:
+        - Match
+      summary: 'Get matches without messages'
+      operationId: findMatches
+      responses:
+        200:
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                properties:
+                  _embedded:
+                    type: object
+                    properties:
+                      profileToSwipeDtoList:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/MatchDto'
+              examples:
+                'No matches found':
+                  description: 'No matches found'
+                  value: '{}'
+                'Matches found':
+                  description: 'Matches found'
+                  value: '{"_embedded":{"matchDtoList":[{"id":1450,"profileId":98,"firstName":"Gloria","photos":["anotherPhoto1.jpg","anotherPhoto2.jpg"],"matchedAt":"2023-02-28T14:59:12.521611","_links":{"conversation":{"href":"http://localhost/api/v1/conversations/1450"},"delete":{"href":"http://localhost/api/v1/matches/1450"}}}]}}'
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+      security:
+        - bearer-key: [ ]
+  /api/v1/conversations:
+    get:
+      tags:
+        - Match
+      summary: 'Get matches with messages'
+      operationId: findMatchesWithMessages
+      responses:
+        200:
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                properties:
+                  _embedded:
+                    type: object
+                    properties:
+                      profileToSwipeDtoList:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/MatchWithMessagesDto'
+              examples:
+                'No matches with messages found':
+                  description: 'No matches with messages found'
+                  value: '{}'
+                'Found matches with messages':
+                  description: 'Found matches with messages'
+                  value: '{"_embedded":{"matchWithMessagesDtoList":[{"id":1476,"profileId":98,"firstName":"Gloria","photos":["anotherPhoto1.jpg","anotherPhoto2.jpg"],"senderId":1257,"lastMessageContent":"content","lastMessageStatus":"SENT","lastMessageSentAt":"2023-02-28T18:39:27.796308","_links":{"conversation":{"href":"http://localhost/api/v1/conversations/1476"},"delete":{"href":"http://localhost/api/v1/matches/1476"}}}]}}'
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+      security:
+        - bearer-key: [ ]
+  '/api/v1/conversations/{id}':
+    get:
+      tags:
+        - Message
+      summary: 'Get the conversation by match id'
+      operationId: findMessagesByMatchId
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                properties:
+                  _embedded:
+                    type: object
+                    properties:
+                      profileToSwipeDtoList:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/MessageDto'
+              examples:
+                'Got conversation with messages':
+                  description: 'Got conversation with messages'
+                  value: '{"_embedded":{"messageDtoList":[{"id":669,"senderId":1257,"content":"content","parentMessageId":null,"senderReaction":null,"receiverReaction":null,"status":"SENT","sentAt":"2023-03-01T00:16:26.554135","seenAt":null,"_links":{"reply":{"href":"http://localhost/api/v1/messages"},"react like":{"href":"http://localhost/api/v1/messages/669/LIKE"},"react super":{"href":"http://localhost/api/v1/messages/669/SUPER"},"react haha":{"href":"http://localhost/api/v1/messages/669/HAHA"},"react cry":{"href":"http://localhost/api/v1/messages/669/CRY"},"react wrr":{"href":"http://localhost/api/v1/messages/669/WRR"},"react care":{"href":"http://localhost/api/v1/messages/669/CARE"},"delete reaction":{"href":"http://localhost/api/v1/messages/669"}}}]}}'
+                'Got conversation without messages':
+                  description: 'Got conversation without messages'
+                  value: '{}'
+        400:
+          description: 'BAD REQUEST'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'Bad request':
+                  description: 'Bad request'
+                  value:
+                    - { "errors": [ "Bad argument type. String 'a' instead of Long" ] }
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+                'Invalid request data':
+                  description: 'Invalid request data'
+                  value: '{"errors":["The match id must be a positive number"]}'
+                'Match not exists':
+                  description: 'Match not exists'
+                  value: '{"errors":["Match not exists"]}'
+                'Profile not belongs to match':
+                  description: 'Profile not belongs to match'
+                  value: '{"errors":["Profile not belongs to match"]}'
+      security:
+        - bearer-key: [ ]
+  '/api/v1/matches/{id}':
+    delete:
+      tags:
+        - Match
+      summary: 'Delete match by id'
+      operationId: deleteMatch
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        204:
+          description: 'NO CONTENT'
+          content:
+            application/json:
+              examples:
+                'Match deleted':
+                  description: 'Match deleted'
+        400:
+          description: 'BAD REQUEST'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'Bad request':
+                  description: 'Bad request'
+                  value:
+                    - { "errors": [ "Bad argument type. String 'a' instead of Long" ] }
+        404:
+          description: 'NOT FOUND'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'Match not exists':
+                  description: 'Match not exists'
+                  value: '{"errors":["Match not exists"]}'
+        422:
+          description: 'UNPROCESSABLE ENTITY'
+          content:
+            application/json:
+              schema:
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+              examples:
+                'User not exists':
+                  description: 'User not exists'
+                  value: '{"errors":["User not exists"]}'
+                'Profile not exists':
+                  description: 'Profile not exists'
+                  value: '{"errors":["Profile not exists"]}'
+                'Invalid request data':
+                  description: 'Invalid request data'
+                  value: '{"errors":["The match id must be a positive number"]}'
+      security:
+        - bearer-key: [ ]
+
+components:
+  schemas:
+    LocationDto:
+      description: JSON request object with user coordinates
+      required:
+        - lastLatitude
+        - lastLongitude
+      type: object
+      properties:
+        lastLatitude:
+          maximum: 90
+          minimum: -90
+          type: number
+          format: double
+        lastLongitude:
+          maximum: 180
+          minimum: -180
+          type: number
+          format: double
+    Match:
+      description: JSON with HAL response object for successfully created match. Same as DAO but with added links
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        profileId1:
+          type: integer
+          format: int64
+        profileId2:
+          type: integer
+          format: int64
+        matchedAt:
+          type: string
+          format: date-time
+        _links:
+          type: array
+          items:
+            properties:
+              link:
+                type: object
+                properties:
+                  href:
+                    type: string
+    MatchDto:
+      description: JSON with HAL response object with match without messages
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        profileId:
+          type: integer
+          format: int64
+        firstName:
+          type: string
+        photos:
+          type: array
+          items:
+            properties:
+              photo:
+                type: string
+        matchedAt:
+          type: string
+          format: date-time
+        _links:
+          type: array
+          items:
+            properties:
+              link:
+                type: object
+                properties:
+                  href:
+                    type: string
+    MatchWithMessagesDto:
+      description: JSON with HAL response object with match with last message
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        profileId:
+          type: integer
+          format: int64
+        firstName:
+          type: string
+        photos:
+          type: array
+          items:
+            properties:
+              photo:
+                type: string
+        senderId:
+          type: integer
+          format: int64
+        lastMessageContent:
+          type: string
+        lastMessageStatus:
+          type: string
+        lastMessageSentAt:
+          type: string
+          format: date-time
+        _links:
+          type: array
+          items:
+            properties:
+              link:
+                type: object
+                properties:
+                  href:
+                    type: string
+    Message:
+      description: JSON with HAL response object for successfully created message. Same as DAO but with added links
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        senderId:
+          type: integer
+          format: int64
+        matchId:
+          type: integer
+          format: int64
+        content:
+          type: string
+        parentMessageId:
+          type: integer
+          format: int64
+        senderReaction:
+          type: string
+        receiverReaction:
+          type: string
+        status:
+          type: string
+        sentAt:
+          type: string
+          format: date-time
+        seenAt:
+          type: string
+          format: date-time
+        _links:
+          type: array
+          items:
+            properties:
+              link:
+                type: object
+                properties:
+                  href:
+                    type: string
+    MessageDto:
+      description: JSON with HAL response object with message from conversation
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        senderId:
+          type: integer
+          format: int64
+        content:
+          type: string
+        parentMessageId:
+          type: integer
+          format: int64
+        senderReaction:
+          type: string
+        receiverReaction:
+          type: string
+        status:
+          type: string
+        sentAt:
+          type: string
+          format: date-time
+        seenAt:
+          type: string
+          format: date-time
+        _links:
+          type: array
+          items:
+            properties:
+              link:
+                type: object
+                properties:
+                  href:
+                    type: string
+    MyProfileDto:
+      description: JSON with HAL response object with user profile
+      type: object
+      properties:
+        firstName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        gender:
+          type: string
+        photos:
+          type: array
+          items:
+            properties:
+              photo:
+                type: string
+        description:
+          type: string
+        mySong:
+          type: string
+        lookingFor:
+          type: string
+        searchDistance:
+          type: integer
+          format: int32
+        ageRangeMinimum:
+          type: integer
+          format: int32
+        ageRangeMaximum:
+          type: integer
+          format: int32
+        _links:
+          type: array
+          items:
+            properties:
+              link:
+                type: object
+                properties:
+                  href:
+                    type: string
+    Profile:
+      description: JSON with HAL response object for successfully created profile. Same as DAO but with added links
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        firstName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        gender:
+          type: string
+        photos:
+          type: array
+          items:
+            properties:
+              photo:
+                type: string
+        description:
+          type: string
+        mySong:
+          type: string
+        lastLatitude:
+          type: number
+          format: double
+        lastLongitude:
+          type: number
+          format: double
+        createdAt:
+          type: string
+          format: date-time
+        swipesLeft:
+          type: integer
+          format: int32
+        waitUntil:
+          type: string
+          format: date-time
+        lookingFor:
+          type: string
+        searchDistance:
+          type: integer
+          format: int32
+        ageRangeMinimum:
+          type: integer
+          format: int32
+        ageRangeMaximum:
+          type: integer
+          format: int32
+        _links:
+          type: array
+          items:
+            properties:
+              link:
+                type: object
+                properties:
+                  href:
+                    type: string
+    ProfileToSwipeDto:
+      description: JSON with HAL response object with profile to swipe
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        firstName:
+          type: string
+        age:
+          type: integer
+          format: int32
+        gender:
+          type: string
+        photos:
+          type: array
+          items:
+            properties:
+              photo:
+                type: string
+        description:
+          type: string
+        mySong:
+          type: string
+        distanceAway:
+          type: integer
+          format: int32
+        _links:
+          type: array
+          items:
+            properties:
+              link:
+                type: object
+                properties:
+                  href:
+                    type: string
+    RegistrationDto:
+      description: JSON request object with profile registration data
+      required:
+        - ageRangeMaximum
+        - ageRangeMinimum
+        - dateOfBirth
+        - firstName
+        - gender
+        - lastLatitude
+        - lastLongitude
+        - lookingFor
+        - mySong
+        - searchDistance
+      type: object
+      properties:
+        firstName:
+          pattern: '[A-Z][a-z]{1,19}'
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        gender:
+          pattern: MAN|WOMAN
+          type: string
+        description:
+          maxLength: 500
+          minLength: 0
+          type: string
+        mySong:
+          pattern: '[a-zA-Z0-9]*'
+          type: string
+        lastLatitude:
+          maximum: 90
+          minimum: -90
+          type: number
+          format: double
+        lastLongitude:
+          maximum: 180
+          minimum: -180
+          type: number
+          format: double
+        lookingFor:
+          pattern: MEN|WOMEN|BOTH
+          type: string
+        searchDistance:
+          maximum: 100
+          minimum: 1
+          type: integer
+          format: int32
+        ageRangeMinimum:
+          maximum: 100
+          minimum: 18
+          type: integer
+          format: int32
+        ageRangeMaximum:
+          maximum: 100
+          minimum: 18
+          type: integer
+          format: int32
+    SentMessageDto:
+      description: JSON request object with sent message data
+      required:
+        - content
+        - matchId
+      type: object
+      properties:
+        matchId:
+          type: integer
+          format: int64
+        content:
+          maxLength: 1000
+          minLength: 1
+          type: string
+        parentMessageId:
+          type: integer
+          format: int64
+    Swipe:
+      description: JSON with HAL response object for successfully created swipe. Same as DAO but with added links
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        senderId:
+          type: integer
+          format: int64
+        receiverId:
+          type: integer
+          format: int64
+        direction:
+          type: string
+        swipedAt:
+          type: string
+          format: date-time
+        _links:
+          type: array
+          items:
+            properties:
+              link:
+                type: object
+                properties:
+                  href:
+                    type: string
+    UpdatedProfileDto:
+      description: JSON request object with updated profile data
+      required:
+        - ageRangeMaximum
+        - ageRangeMinimum
+        - lastLatitude
+        - lastLongitude
+        - lookingFor
+        - mySong
+        - searchDistance
+      type: object
+      properties:
+        description:
+          maxLength: 500
+          minLength: 0
+          type: string
+        mySong:
+          pattern: '[a-zA-Z0-9]*'
+          type: string
+        lastLatitude:
+          maximum: 90
+          minimum: -90
+          type: number
+          format: double
+        lastLongitude:
+          maximum: 180
+          minimum: -180
+          type: number
+          format: double
+        lookingFor:
+          pattern: MEN|WOMEN|BOTH
+          type: string
+        searchDistance:
+          maximum: 100
+          minimum: 1
+          type: integer
+          format: int32
+        ageRangeMinimum:
+          maximum: 100
+          minimum: 18
+          type: integer
+          format: int32
+        ageRangeMaximum:
+          maximum: 100
+          minimum: 18
+          type: integer
+          format: int32
+    User:
+      description: JSON with HAL response object for successfully created user. Same as DAO but with added links
+      type: object
+      properties:
+        id:
+          type: string
+        profileId:
+          type: integer
+          format: int64
+        _links:
+          type: array
+          items:
+            properties:
+              link:
+                type: object
+                properties:
+                  href:
+                    type: string
+  securitySchemes:
+    bearer-key:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

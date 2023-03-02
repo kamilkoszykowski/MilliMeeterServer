@@ -96,4 +96,9 @@ public class Profile {
     this.ageRangeMinimum = registrationDto.getAgeRangeMinimum();
     this.ageRangeMaximum = registrationDto.getAgeRangeMaximum();
   }
+
+  public Profile(Profile profile) {
+    this(profile.getId(), profile.getFirstName(), profile.getDateOfBirth(), profile.getGender(), profile.getPhotos(), profile.getDescription(), profile.getMySong(), profile.getLastLatitude(), profile.getLastLongitude(), profile.getCreatedAt(), profile.getSwipesLeft(), profile.getWaitUntil(), profile.getLookingFor(), profile.getSearchDistance(), profile.getAgeRangeMinimum(), profile.getAgeRangeMaximum()
+    );
+  }
 }

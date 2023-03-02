@@ -1,13 +1,18 @@
 package millimeeter.server.service;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import javax.persistence.Tuple;
 import millimeeter.server.dto.*;
 import millimeeter.server.enums.Gender;
@@ -44,6 +49,7 @@ public class ProfileService {
         throw new ResponseStatusException(
             HttpStatus.UNPROCESSABLE_ENTITY, "Limit of 5 photos exceeded");
       }
+      checkIfPhotosAreValid(photos);
       List<String> photosData = new ArrayList<>();
       for (MultipartFile photo : photos) {
         photosData = savePhotoAndReturnUpdatedList(photosData, -1, photo);
@@ -77,6 +83,7 @@ public class ProfileService {
 
   public Profile uploadPhoto(int index, MultipartFile photo) {
     authUtils.checkIfProfileExists();
+    checkIfPhotosAreValid(photo);
     Profile profile = authUtils.getProfile();
     List<String> photos = profile.getPhotos();
     if (index == -1) {
@@ -154,6 +161,9 @@ public class ProfileService {
       throw new ResponseStatusException(
           HttpStatus.UNPROCESSABLE_ENTITY, "Photo with the given number does not exist");
     }
+    if (photos.size() == 1) {
+      throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Cannot delete the only remaining photo");
+    }
     File toDelete = new File(DIRECTORY + photos.get(index));
     if (!toDelete.delete()) {
       throw new ResponseStatusException(
@@ -207,7 +217,6 @@ public class ProfileService {
       }
     } catch (Exception e) {
       System.out.println(e.getMessage());
-      System.out.println(e.getStackTrace());
     }
     return photos;
   }
@@ -218,5 +227,40 @@ public class ProfileService {
       case WOMEN -> Gender.WOMAN;
       default -> null;
     };
+  }
+
+  void checkIfPhotosAreValid(MultipartFile[] photos) {
+    Arrays.stream(photos).filter(photo -> !isPhotoValid(photo)).forEach(photo -> {
+      throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Photos must have 3/4 aspect ratio and .jpg extension");
+    });
+  }
+
+  void checkIfPhotosAreValid(MultipartFile photo) {
+    if (!isPhotoValid(photo)) {
+      throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Photos must have 3/4 aspect ratio and .jpg extension");
+    }
+  }
+
+  boolean isPhotoValid(MultipartFile photo) {
+    try {
+      BufferedImage bufferedImage = ImageIO.read(photo.getInputStream());
+      double aspectRatio = bufferedImage.getWidth() / (double) bufferedImage.getHeight();
+      boolean isAspectRatioValid = Double.compare(aspectRatio, 0.755) < 0 && Double.compare(aspectRatio, 0.745) > 0;
+
+      ImageInputStream imageInputStream = ImageIO.createImageInputStream(photo.getInputStream());
+      Iterator<ImageReader> imageReaders = ImageIO.getImageReaders(imageInputStream);
+      String formatName = null;
+      if (imageReaders.hasNext()) {
+        ImageReader imageReader = imageReaders.next();
+        formatName = imageReader.getFormatName();
+      }
+      boolean isPhotoTypeValid = formatName != null && formatName.equalsIgnoreCase("jpeg");
+
+      return isAspectRatioValid && isPhotoTypeValid;
+    } catch (IOException ex) {
+      System.out.println(ex.getMessage());
+      throw new ResponseStatusException(
+              HttpStatus.INTERNAL_SERVER_ERROR, "An error occurred while validating Multipart file");
+    }
   }
 }

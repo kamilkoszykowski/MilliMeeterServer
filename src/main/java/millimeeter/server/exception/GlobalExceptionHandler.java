@@ -16,6 +16,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
@@ -57,9 +59,40 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
   }
 
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<Object> handleMethodArgumentTypeMismatchException(
+      MethodArgumentTypeMismatchException ex) {
+    Map<String, List<String>> body = new HashMap<>();
+    String message = ex.getMessage();
+    if (message != null) {
+      body.put(
+          "errors",
+          List.of(
+              "Bad argument type. "
+                  + message.replaceAll("Failed to convert.*?java.lang.", "").replaceAll("'.*", " '")
+                  + message.replaceAll(".*For input .*?: \"", "").replaceAll("\".*", "'")
+                  + " instead of "
+                  + message
+                      .replaceAll(".*required type '(java.lang.|)", "")
+                      .replaceAll("'.*", "")));
+    }
+    return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+  }
+
   @ExceptionHandler(InvalidContentTypeException.class)
   public ResponseEntity<Object> handleInvalidContentTypeException(InvalidContentTypeException ex) {
     return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+  }
+
+  @Override
+  protected ResponseEntity<Object> handleMissingServletRequestPart(
+      MissingServletRequestPartException ex,
+      HttpHeaders headers,
+      HttpStatus status,
+      WebRequest request) {
+    Map<String, List<String>> body = new HashMap<>();
+    body.put("errors", List.of(ex.getMessage()));
+    return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
   }
 
   @ExceptionHandler(DataIntegrityViolationException.class)

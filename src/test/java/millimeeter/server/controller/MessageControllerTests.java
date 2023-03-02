@@ -1,27 +1,13 @@
 package millimeeter.server.controller;
 
-import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
 import millimeeter.server.dto.SentMessageDto;
-import millimeeter.server.enums.Gender;
-import millimeeter.server.enums.LookingFor;
 import millimeeter.server.enums.MessageReaction;
 import millimeeter.server.model.Match;
 import millimeeter.server.model.Message;
 import millimeeter.server.model.Profile;
-import millimeeter.server.model.Swipe;
-import millimeeter.server.repository.*;
+import millimeeter.server.repository.MatchRepository;
+import millimeeter.server.repository.MessageRepository;
+import millimeeter.server.service.TestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,134 +19,41 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.nio.charset.StandardCharsets;
+
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.matchesRegex;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 class MessageControllerTests {
 
-  private final UserRepository userRepository;
-  private final ProfileRepository profileRepository;
-  private final SwipeRepository swipeRepository;
   private final MatchRepository matchRepository;
   private final MessageRepository messageRepository;
+  private final TestUtils testUtils;
   private final WebApplicationContext applicationContext;
   private MockMvc mockMvc;
 
   @Autowired
   public MessageControllerTests(
-      UserRepository userRepository,
-      ProfileRepository profileRepository,
-      SwipeRepository swipeRepository,
       MatchRepository matchRepository,
       MessageRepository messageRepository,
+      TestUtils testUtils,
       WebApplicationContext applicationContext) {
-    this.userRepository = userRepository;
-    this.profileRepository = profileRepository;
-    this.swipeRepository = swipeRepository;
     this.matchRepository = matchRepository;
     this.messageRepository = messageRepository;
+    this.testUtils = testUtils;
     this.applicationContext = applicationContext;
   }
 
-  static final String USERNAME = "mockUser";
-  long profileId = -1;
-  static Profile profile =
-      new Profile(
-          null,
-          "Testuser",
-          LocalDate.parse("2000-01-01"),
-          Gender.MAN,
-          List.of("photo1.jpg", "photo2.jpg"),
-          "Hi, I'm user who takes part in integration testing :)",
-          "mySong",
-          90.0,
-          90.0,
-          LocalDateTime.now(),
-          50,
-          null,
-          LookingFor.WOMEN,
-          100,
-          18,
-          40);
-  static final String ANOTHER_USERNAME = "Gloria";
-  long anotherId = -1;
-  static Profile anotherProfile =
-      new Profile(
-          null,
-          "Gloria",
-          LocalDate.parse("2000-01-01"),
-          Gender.WOMAN,
-          List.of("anotherPhoto1.jpg", "anotherPhoto2.jpg"),
-          "Hi, I'm another profile who takes part in integration testing of that API",
-          "another mySong",
-          89.0,
-          89.0,
-          LocalDateTime.now(),
-          50,
-          null,
-          LookingFor.MEN,
-          100,
-          18,
-          40);
-  static final String ANOTHER_USERNAME_2 = "Victoria";
-  long anotherId2 = -1;
-  static Profile anotherProfile2 =
-      new Profile(
-          null,
-          "Victoria",
-          LocalDate.parse("2004-01-01"),
-          Gender.WOMAN,
-          List.of("anotherPhoto2_1.jpg", "anotherPhoto2_2.jpg"),
-          "I'm helping too :3",
-          "another mySong 2",
-          88.0,
-          88.0,
-          LocalDateTime.now(),
-          50,
-          null,
-          LookingFor.MEN,
-          100,
-          20,
-          50);
-
-  void addSwipe(Long from, Long to, String direction) {
-    swipeRepository.save(new Swipe(from, to, direction));
-  }
-
-  void addMatch(Long profileId1, Long profileId2) {
-    matchRepository.save(new Match(profileId1, profileId2));
-  }
-
-  void addMessage(Long matchId, Long from, String content) {
-    SentMessageDto sentMessageDto = new SentMessageDto(matchId, content, null);
-    messageRepository.save(new Message(from, sentMessageDto));
-  }
-
-  void createProfileIfNotExists(Long profileId, Profile profile) {
-    try {
-      for (String photo : profile.getPhotos()) {
-        FileOutputStream output = new FileOutputStream("photos/" + photo);
-        output.write("0x80".getBytes());
-        output.close();
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-    if (profileRepository.findById(profileId).isEmpty()) {
-      profile.setId(profileId);
-      profileRepository.save(profile);
-    }
-  }
-
-  void deleteProfileIfExistsById(Long profileId) {
-    if (profileRepository.findById(profileId).isPresent()) {
-      List<String> photos = profileRepository.findById(profileId).get().getPhotos();
-      for (String photo : photos) {
-        File toDelete = new File("photos/" + photo);
-        toDelete.delete();
-      }
-      profileRepository.deleteById(profileId);
-    }
-  }
+  static final String USERNAME = TestUtils.USERNAME;
+  private Profile profile;
+  private Profile anotherProfile;
+  private Profile anotherProfile2;
 
   @BeforeEach
   void init() {
@@ -168,30 +61,21 @@ class MessageControllerTests {
         MockMvcBuilders.webAppContextSetup(applicationContext)
             .defaultResponseCharacterEncoding(StandardCharsets.UTF_8)
             .build();
-    if (userRepository.findById(USERNAME).isEmpty()) {
-      profileId = userRepository.createUser(USERNAME).getProfileId();
-    } else {
-      profileId = userRepository.findProfileIdById(USERNAME);
-    }
-    if (userRepository.findById(ANOTHER_USERNAME).isEmpty()) {
-      anotherId = userRepository.createUser(ANOTHER_USERNAME).getProfileId();
-    } else {
-      anotherId = userRepository.findProfileIdById(ANOTHER_USERNAME);
-    }
-    if (userRepository.findById(ANOTHER_USERNAME_2).isEmpty()) {
-      anotherId2 = userRepository.createUser(ANOTHER_USERNAME_2).getProfileId();
-    } else {
-      anotherId2 = userRepository.findProfileIdById(ANOTHER_USERNAME_2);
-    }
+    testUtils.createUserIfNotExists(TestUtils.USERNAME, testUtils.getProfile());
+    testUtils.createUserIfNotExists(TestUtils.ANOTHER_USERNAME, testUtils.getAnotherProfile());
+    testUtils.createUserIfNotExists(TestUtils.ANOTHER_USERNAME_2, testUtils.getAnotherProfile2());
+    testUtils.createProfileIfNotExists(testUtils.getProfile());
+    testUtils.deleteProfileIfExistsById(testUtils.getAnotherProfile());
+    testUtils.createProfileIfNotExists(testUtils.getAnotherProfile());
+    profile = testUtils.getProfile();
+    anotherProfile = testUtils.getAnotherProfile();
+    anotherProfile2 = testUtils.getAnotherProfile2();
   }
 
   @Test
   @WithMockUser(username = USERNAME)
-  void sendAndExpectCreated() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    Match match = matchRepository.save(new Match(profileId, anotherId));
+  void verifyValidSendRequestReturnCreated() throws Exception {
+    Match match = testUtils.addMatch(profile.getId(), anotherProfile.getId());
     mockMvc
         .perform(
             post("/api/v1/messages")
@@ -207,7 +91,7 @@ class MessageControllerTests {
         .andDo(print())
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(greaterThan(0)))
-        .andExpect(jsonPath("$.senderId").value(profileId))
+        .andExpect(jsonPath("$.senderId").value(profile.getId()))
         .andExpect(jsonPath("$.matchId").value(match.getId()))
         .andExpect(jsonPath("$.content").value("content"))
         .andExpect(jsonPath("$.parentMessageId").isEmpty())
@@ -244,13 +128,10 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void sendAndExpectUnprocessableEntityProfileNotBelongsToMatch() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    deleteProfileIfExistsById(anotherId2);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    createProfileIfNotExists(anotherId2, anotherProfile2);
-    Match match = matchRepository.save(new Match(anotherId, anotherId2));
+  void verifySendingMessageNotBelongingToMatchReturnUnprocessableEntity() throws Exception {
+    testUtils.deleteProfileIfExistsById(anotherProfile2);
+    testUtils.createProfileIfNotExists(anotherProfile2);
+    Match match = testUtils.addMatch(anotherProfile.getId(), anotherProfile2.getId());
     mockMvc
         .perform(
             post("/api/v1/messages")
@@ -270,12 +151,9 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void sendAndExpectUnprocessableEntityMatchNotExists() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    Match match = matchRepository.save(new Match(profileId, anotherId));
-    deleteProfileIfExistsById(anotherId);
+  void verifySendingMessageInNotExistingMessageReturnUnprocessableEntity() throws Exception {
+    Match match = testUtils.addMatch(profile.getId(), anotherProfile.getId());
+    testUtils.deleteProfileIfExistsById(anotherProfile);
     mockMvc
         .perform(
             post("/api/v1/messages")
@@ -295,13 +173,10 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void sendAndExpectUnprocessableEntityParentMessageNotExists() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    Match match = matchRepository.save(new Match(profileId, anotherId));
+  void verifyReplyingToNotExistingMessageReturnUnprocessableEntity() throws Exception {
+    Match match = testUtils.addMatch(profile.getId(), anotherProfile.getId());
     SentMessageDto sentMessageDto = new SentMessageDto(match.getId(), "content", null);
-    Message message = messageRepository.save(new Message(profileId, sentMessageDto));
+    Message message = testUtils.addMessage(profile.getId(), sentMessageDto);
     messageRepository.deleteById(message.getId());
     mockMvc
         .perform(
@@ -324,11 +199,8 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void findMessagesByMatchIdAndExpectOkNoMessages() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    Match match = matchRepository.save(new Match(profileId, anotherId));
+  void verifyValidFindMessagesFromMatchReturnOkNoMessages() throws Exception {
+    Match match = testUtils.addMatch(profile.getId(), anotherProfile.getId());
     mockMvc
         .perform(get("/api/v1/conversations/{id}", match.getId()))
         .andDo(print())
@@ -338,19 +210,16 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void findMessagesByMatchIdAndExpectOkWithMessages() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    Match match = matchRepository.save(new Match(profileId, anotherId));
+  void verifyValidFindMessagesFromMatchReturnOkWithMessages() throws Exception {
+    Match match = testUtils.addMatch(profile.getId(), anotherProfile.getId());
     SentMessageDto sentMessageDto = new SentMessageDto(match.getId(), "content", null);
-    Message message = messageRepository.save(new Message(profileId, sentMessageDto));
+    Message message = testUtils.addMessage(profile.getId(), sentMessageDto);
     mockMvc
         .perform(get("/api/v1/conversations/{id}", match.getId()))
         .andDo(print())
         .andExpect(status().isOk())
         .andExpect(jsonPath("_embedded.messageDtoList[0].id", greaterThan(0)))
-        .andExpect(jsonPath("_embedded.messageDtoList[0].senderId").value(profileId))
+        .andExpect(jsonPath("_embedded.messageDtoList[0].senderId").value(profile.getId()))
         .andExpect(
             jsonPath("_embedded.messageDtoList[0].content").value(sentMessageDto.getContent()))
         .andExpect(jsonPath("_embedded.messageDtoList[0].parentMessageId").isEmpty())
@@ -393,14 +262,11 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void findMessagesByMatchIdAndExpectUnprocessableEntityProfileNotBelongsToMatch()
+  void verifyFindingMessagesByProfileNotBelongingToMatchReturnsUnprocessableEntity()
       throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    deleteProfileIfExistsById(anotherId2);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    createProfileIfNotExists(anotherId2, anotherProfile2);
-    Match match = matchRepository.save(new Match(anotherId, anotherId2));
+    testUtils.deleteProfileIfExistsById(anotherProfile2);
+    testUtils.createProfileIfNotExists(anotherProfile2);
+    Match match = testUtils.addMatch(anotherProfile.getId(), anotherProfile2.getId());
     mockMvc
         .perform(get("/api/v1/conversations/{id}", match.getId()))
         .andDo(print())
@@ -410,11 +276,8 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void findMessagesByMatchIdAndExpectUnprocessableEntityMatchNotExists() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    Match match = matchRepository.save(new Match(profileId, anotherId));
+  void verifyFindingMatchesFromNotExistingMatchReturnUnprocessableEntity() throws Exception {
+    Match match = testUtils.addMatch(profile.getId(), anotherProfile.getId());
     matchRepository.deleteById(match.getId());
     mockMvc
         .perform(get("/api/v1/conversations/{id}", match.getId()))
@@ -425,13 +288,10 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void reactToMessageAndExpectOk() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    Match match = matchRepository.save(new Match(profileId, anotherId));
+  void verifyReactingToMessageReturnOk() throws Exception {
+    Match match = testUtils.addMatch(profile.getId(), anotherProfile.getId());
     SentMessageDto sentMessageDto = new SentMessageDto(match.getId(), "content", null);
-    Message message = messageRepository.save(new Message(profileId, sentMessageDto));
+    Message message = testUtils.addMessage(profile.getId(), sentMessageDto);
     mockMvc
         .perform(put("/api/v1/messages/{id}/{reaction}", message.getId(), "LIKE"))
         .andDo(print())
@@ -468,13 +328,10 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void reactToMessageAndExpectUnprocessableEntityMessageNotExists() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    Match match = matchRepository.save(new Match(profileId, anotherId));
+  void verifyReactingToNotExistingMessageReturnUnprocessableEntity() throws Exception {
+    Match match = testUtils.addMatch(profile.getId(), anotherProfile.getId());
     SentMessageDto sentMessageDto = new SentMessageDto(match.getId(), "content", null);
-    Message message = messageRepository.save(new Message(profileId, sentMessageDto));
+    Message message = testUtils.addMessage(profile.getId(), sentMessageDto);
     messageRepository.deleteById(message.getId());
     mockMvc
         .perform(put("/api/v1/messages/{id}/{reaction}", message.getId(), "LIKE"))
@@ -485,15 +342,12 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void reactToMessageAndExpectUnprocessableEntityProfileNotBelongsToMatch() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    deleteProfileIfExistsById(anotherId2);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    createProfileIfNotExists(anotherId2, anotherProfile2);
-    Match match = matchRepository.save(new Match(anotherId, anotherId2));
+  void verifyReactingToMessageNotBelongingToProfileMatchesReturnUnprocessableEntity() throws Exception {
+    testUtils.deleteProfileIfExistsById(anotherProfile2);
+    testUtils.createProfileIfNotExists(anotherProfile2);
+    Match match = testUtils.addMatch(anotherProfile.getId(), anotherProfile2.getId());
     SentMessageDto sentMessageDto = new SentMessageDto(match.getId(), "content", null);
-    Message message = messageRepository.save(new Message(anotherId, sentMessageDto));
+    Message message = testUtils.addMessage(anotherProfile.getId(), sentMessageDto);
     mockMvc
         .perform(put("/api/v1/messages/{id}/{reaction}", message.getId(), "LIKE"))
         .andDo(print())
@@ -504,13 +358,10 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void deleteReactionFromMessageAndExpectOk() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    Match match = matchRepository.save(new Match(profileId, anotherId));
+  void verifyDeletingReactionFromMessageReturnOk() throws Exception {
+    Match match = testUtils.addMatch(profile.getId(), anotherProfile.getId());
     SentMessageDto sentMessageDto = new SentMessageDto(match.getId(), "content", null);
-    Message message = messageRepository.save(new Message(profileId, sentMessageDto));
+    Message message = testUtils.addMessage(profile.getId(), sentMessageDto);
     message.setSenderReaction(MessageReaction.LIKE);
     messageRepository.save(message);
     mockMvc
@@ -549,13 +400,10 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void deleteReactionFromMessageAndExpectUnprocessableEntityMessageNotExists() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    Match match = matchRepository.save(new Match(profileId, anotherId));
+  void verifyDeletingReactionFromNotExistingMessageReturnUnprocessableEntity() throws Exception {
+    Match match = testUtils.addMatch(profile.getId(), anotherProfile.getId());
     SentMessageDto sentMessageDto = new SentMessageDto(match.getId(), "content", null);
-    Message message = messageRepository.save(new Message(profileId, sentMessageDto));
+    Message message = testUtils.addMessage(profile.getId(), sentMessageDto);
     messageRepository.deleteById(message.getId());
     mockMvc
         .perform(put("/api/v1/messages/{id}", message.getId()))
@@ -566,16 +414,13 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void deleteReactionFromMessageAndExpectUnprocessableEntityProfileNotBelongsToMatch()
+  void verifyDeletingReactionFromMessageByProfileNotBelongingToMatchReturnUnprocessableEntity()
       throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    deleteProfileIfExistsById(anotherId2);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    createProfileIfNotExists(anotherId2, anotherProfile2);
-    Match match = matchRepository.save(new Match(anotherId, anotherId2));
+    testUtils.deleteProfileIfExistsById(anotherProfile2);
+    testUtils.createProfileIfNotExists(anotherProfile2);
+    Match match = testUtils.addMatch(anotherProfile.getId(), anotherProfile2.getId());
     SentMessageDto sentMessageDto = new SentMessageDto(match.getId(), "content", null);
-    Message message = messageRepository.save(new Message(anotherId, sentMessageDto));
+    Message message = testUtils.addMessage(anotherProfile.getId(), sentMessageDto);
     mockMvc
         .perform(put("/api/v1/messages/{id}", message.getId()))
         .andDo(print())
@@ -586,13 +431,10 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void readMessagesInConversationAndExceptOk() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    Match match = matchRepository.save(new Match(profileId, anotherId));
+  void verifyReadingMessagesInConversationReturnOk() throws Exception {
+    Match match = testUtils.addMatch(profile.getId(), anotherProfile.getId());
     SentMessageDto sentMessageDto = new SentMessageDto(match.getId(), "content", null);
-    Message message = messageRepository.save(new Message(profileId, sentMessageDto));
+    Message message = testUtils.addMessage(profile.getId(), sentMessageDto);
     mockMvc
         .perform(put("/api/v1/messages/read/{matchId}", match.getId()))
         .andDo(print())
@@ -601,14 +443,11 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void readMessagesInConversationAndExceptUnprocessableEntityProfileNotBelongToMatch()
+  void verifyReadingMessagesInConversationByProfileNotBelongingToMatchReturnUnprocessableEntity()
       throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    deleteProfileIfExistsById(anotherId2);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    createProfileIfNotExists(anotherId2, anotherProfile2);
-    Match match = matchRepository.save(new Match(anotherId, anotherId2));
+    testUtils.deleteProfileIfExistsById(anotherProfile2);
+    testUtils.createProfileIfNotExists(anotherProfile2);
+    Match match = testUtils.addMatch(anotherProfile.getId(), anotherProfile2.getId());
     mockMvc
         .perform(put("/api/v1/messages/read/{matchId}", match.getId()))
         .andDo(print())
@@ -618,13 +457,10 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void readMessagesInConversationAndExceptUnprocessableEntityMatchNotExists() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    deleteProfileIfExistsById(anotherId2);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
-    createProfileIfNotExists(anotherId2, anotherProfile2);
-    Match match = matchRepository.save(new Match(anotherId, anotherId2));
+  void verifyReadingMessagesFromNotExistingMatchReturnUnprocessableEntity() throws Exception {
+    testUtils.deleteProfileIfExistsById(anotherProfile2);
+    testUtils.createProfileIfNotExists(anotherProfile2);
+    Match match = testUtils.addMatch(anotherProfile.getId(), anotherProfile2.getId());
     matchRepository.deleteById(match.getId());
     mockMvc
         .perform(put("/api/v1/messages/read/{matchId}", match.getId()))
@@ -635,8 +471,7 @@ class MessageControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void setMessagesStatusAsDeliveredAndExpectOk() throws Exception {
-    createProfileIfNotExists(profileId, profile);
+  void verifySettingMessagesStatusAsDeliveredReturnOk() throws Exception {
     mockMvc
         .perform(put("/api/v1/messages/setAsDelivered"))
         .andDo(print())

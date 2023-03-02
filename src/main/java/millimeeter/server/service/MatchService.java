@@ -46,7 +46,7 @@ public class MatchService {
   public void deleteMatchById(Long id) {
     authUtils.checkIfProfileExists();
     if (!authUtils.matchExistsById(id)) {
-      throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Match not exists");
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Match not exists");
     }
     Match match = matchRepository.getReferenceById(id);
     Long profileId = authUtils.getProfileId();

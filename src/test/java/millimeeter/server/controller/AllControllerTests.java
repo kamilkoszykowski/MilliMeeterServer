@@ -1,20 +1,7 @@
 package millimeeter.server.controller;
 
-import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
-import java.util.List;
-import millimeeter.server.dto.RegistrationDto;
-import millimeeter.server.model.Profile;
-import millimeeter.server.repository.*;
+import millimeeter.server.repository.UserRepository;
+import millimeeter.server.service.TestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -23,7 +10,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -33,8 +19,16 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.nio.charset.StandardCharsets;
+
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 /*
-    TO MAKE CLASSES FOR EVERY CONTROLLER CLEANER AND SMALLER,
+    TO MAKE TEST CLASSES FOR EVERY CONTROLLER CLEANER AND SMALLER,
     TESTS FOR NOT EXISTING USER, NOT EXISTING PROFILE, INVALID REQUESTS AND BAD REQUESTS
     ARE PLACED HERE AND COMBINED INTO PARAMETRIZED TESTS
 */
@@ -44,112 +38,21 @@ import org.springframework.web.context.WebApplicationContext;
 class AllControllerTests {
 
   private final UserRepository userRepository;
-  private final ProfileRepository profileRepository;
+  private final TestUtils testUtils;
   private final WebApplicationContext applicationContext;
   private MockMvc mockMvc;
 
   @Autowired
   public AllControllerTests(
       UserRepository userRepository,
-      ProfileRepository profileRepository,
+      TestUtils testUtils,
       WebApplicationContext applicationContext) {
     this.userRepository = userRepository;
-    this.profileRepository = profileRepository;
+    this.testUtils = testUtils;
     this.applicationContext = applicationContext;
   }
 
-  static final String USERNAME = MessageControllerTests.USERNAME;
-  long profileId = -1;
-  Profile profile = MessageControllerTests.profile;
-
-  static final String TEST_PHOTO_PATH = "src/main/resources/static/testPhoto.jpg";
-
-  static RegistrationDto registrationDto =
-      new RegistrationDto(
-          "Phhjdnjuahunyksfu",
-          LocalDate.parse("2000-01-31"),
-          "WOMAN",
-          "string",
-          "9QJm7ECVsC0Lygh33KbiwdqCvl5txHfVJERBtMYO6kEvOfRA71slgcb6Kc3Fu7KQxFX9LD4KO",
-          90.0,
-          90.0,
-          "WOMEN",
-          100,
-          100,
-          100);
-
-  static String bodyJson =
-      "{\"firstName\": \""
-          + registrationDto.getFirstName()
-          + "\","
-          + "\"dateOfBirth\": \""
-          + registrationDto.getDateOfBirth()
-          + "\", \"gender\": \""
-          + registrationDto.getGender()
-          + "\", \"description\": \""
-          + registrationDto.getDescription()
-          + "\", \"mySong\": \""
-          + registrationDto.getMySong()
-          + "\", \"lastLatitude\": "
-          + registrationDto.getLastLatitude()
-          + ", \"lastLongitude\": "
-          + registrationDto.getLastLongitude()
-          + ", \"lookingFor\": \""
-          + registrationDto.getLookingFor()
-          + "\", \"searchDistance\": "
-          + registrationDto.getSearchDistance()
-          + ",\"ageRangeMinimum\": "
-          + registrationDto.getAgeRangeMinimum()
-          + ",\"ageRangeMaximum\": "
-          + registrationDto.getAgeRangeMaximum()
-          + "}";
-
-  static MockMultipartFile photo =
-      createMockFile("photos", "magik.jpg", MediaType.IMAGE_JPEG_VALUE, TEST_PHOTO_PATH);
-  static MockMultipartFile jsonFile =
-      createMockFile("body", "test.json", MediaType.APPLICATION_JSON_VALUE, bodyJson);
-
-  static MockMultipartFile createMockFile(
-      String name, String originalFilename, String mediaType, String path) {
-    try {
-      return new MockMultipartFile(
-          name,
-          originalFilename,
-          mediaType,
-          mediaType.equals("application/json")
-              ? path.getBytes()
-              : new FileInputStream(path).readAllBytes());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  void createProfileIfNotExists(Long profileId, Profile profile) {
-    try {
-      for (String photo : profile.getPhotos()) {
-        FileOutputStream output = new FileOutputStream("photos/" + photo);
-        output.write("0x80".getBytes());
-        output.close();
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-    if (profileRepository.findById(profileId).isEmpty()) {
-      profile.setId(profileId);
-      profileRepository.save(profile);
-    }
-  }
-
-  void deleteProfileIfExistsById(Long profileId) {
-    if (profileRepository.findById(profileId).isPresent()) {
-      List<String> photos = profileRepository.findById(profileId).get().getPhotos();
-      for (String photo : photos) {
-        File toDelete = new File("photos/" + photo);
-        toDelete.delete();
-      }
-      profileRepository.deleteById(profileId);
-    }
-  }
+  static final String USERNAME = TestUtils.USERNAME;
 
   @BeforeEach
   void init() {
@@ -157,15 +60,12 @@ class AllControllerTests {
         MockMvcBuilders.webAppContextSetup(applicationContext)
             .defaultResponseCharacterEncoding(StandardCharsets.UTF_8)
             .build();
-    if (userRepository.findById(USERNAME).isEmpty()) {
-      profileId = userRepository.createUser(USERNAME).getProfileId();
-    } else {
-      profileId = userRepository.findProfileIdById(USERNAME);
-    }
+    testUtils.createUserIfNotExists(TestUtils.USERNAME, testUtils.getProfile());
   }
 
-  // REQUEST TESTS
   /*
+    REQUEST TESTS
+
     PARAMETERS HAVE THE FOLLOWING FORMAT:
     "methodName; path; content;"
   */
@@ -190,7 +90,7 @@ class AllControllerTests {
       })
   @WithMockUser(username = USERNAME)
   void verifyBadRequestReturnBadRequest(String endpoints) throws Exception {
-    createProfileIfNotExists(profileId, profile);
+    testUtils.createProfileIfNotExists(testUtils.getProfile());
     String[] inputData = endpoints.split(";\\s*");
     MockHttpServletRequestBuilder builder = createRequestBuilder(inputData);
     mockMvc.perform(builder).andDo(print()).andExpect(status().isBadRequest());
@@ -215,8 +115,8 @@ class AllControllerTests {
         "DELETE; /api/v1/matches/-1",
       })
   @WithMockUser(username = USERNAME)
-  void verifyNotValidRequestReturnNotValidError(String endpoints) throws Exception {
-    createProfileIfNotExists(profileId, profile);
+  void verifyNotValidRequestReturnNotValid(String endpoints) throws Exception {
+    testUtils.createProfileIfNotExists(testUtils.getProfile());
     String[] inputData = endpoints.split(";\\s*");
     MockHttpServletRequestBuilder builder = createRequestBuilder(inputData);
     mockMvc
@@ -253,7 +153,7 @@ class AllControllerTests {
         "DELETE; /api/v1/profiles"
       })
   @WithMockUser(username = USERNAME)
-  void verifyRequestsWithoutExistingUserReturnUserNotExistsError(String endpoints)
+  void verifyRequestsWithoutExistingUserReturnUserNotExists(String endpoints)
       throws Exception {
     userRepository.deleteById(USERNAME);
     String[] inputData = endpoints.split(";\\s*");
@@ -293,7 +193,7 @@ class AllControllerTests {
   @WithMockUser(username = USERNAME)
   void verifyRequestsWithoutExistingProfileReturnProfileNotExistsError(String endpoints)
       throws Exception {
-    deleteProfileIfExistsById(profileId);
+    testUtils.deleteProfileIfExistsById(testUtils.getProfile());
     String[] inputData = endpoints.split(";\\s*");
     MockHttpServletRequestBuilder builder = createRequestBuilder(inputData);
     mockMvc
@@ -304,22 +204,18 @@ class AllControllerTests {
         .andExpect(jsonPath("$.errors", hasSize(1)));
   }
 
-  // MULTIPART REQUEST TESTS
   /*
+    MULTIPART REQUEST TESTS
+
     PARAMETERS HAVE THE FOLLOWING FORMAT:
     "methodName; path; content; photosAmount; registrationJsonAmount;"
   */
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "POST; /api/v1/profiles", // multipart; add files with photos and json registration
-        // data
-        "PUT; /api/v1/profiles/photos?index=5" // multipart
-      })
+  @ValueSource(strings = {"POST; /api/v1/profiles", "PUT; /api/v1/profiles/photos?index=5"})
   @WithMockUser(username = USERNAME)
   void verifyBadMultipartRequestReturnBadRequest(String endpoints) throws Exception {
-    createProfileIfNotExists(profileId, profile);
+    testUtils.createProfileIfNotExists(testUtils.getProfile());
     String[] inputData = endpoints.split(";\\s*");
     MockMultipartHttpServletRequestBuilder builder = createMultipartRequestBuilder(inputData);
     mockMvc.perform(builder).andDo(print()).andExpect(status().isBadRequest());
@@ -327,14 +223,14 @@ class AllControllerTests {
 
   @ParameterizedTest
   @ValueSource(
-      strings = {
-        "POST; /api/v1/profiles;; 6; 1", // multipart; add files with photos and json registration
-        // data
-        "PUT; /api/v1/profiles/photos?index=5;; 1" // multipart
-      })
+      strings = {"POST; /api/v1/profiles;; 6; 1", "PUT; /api/v1/profiles/photos?index=5;; 1"})
   @WithMockUser(username = USERNAME)
-  void verifyNotValidMultipartRequestReturnNotValidError(String endpoints) throws Exception {
-    deleteProfileIfExistsById(profileId);
+  void verifyNotValidMultipartRequestReturnNotValid(String endpoints) throws Exception {
+    if (endpoints.contains("POST; /api/v1/profiles;")) { // profile can not exist before creating via request
+      testUtils.deleteProfileIfExistsById(testUtils.getProfile());
+    } else {
+      testUtils.createProfileIfNotExists(testUtils.getProfile());
+    }
     String[] inputData = endpoints.split(";\\s*");
     MockMultipartHttpServletRequestBuilder builder = createMultipartRequestBuilder(inputData);
     mockMvc
@@ -347,13 +243,9 @@ class AllControllerTests {
 
   @ParameterizedTest
   @ValueSource(
-      strings = {
-        "POST; /api/v1/profiles;; 5; 1", // multipart; add files with photos and json registration
-        // data
-        "PUT; /api/v1/profiles/photos?index=0;; 1" // multipart
-      })
+      strings = {"POST; /api/v1/profiles;; 5; 1", "PUT; /api/v1/profiles/photos?index=0;; 1"})
   @WithMockUser(username = USERNAME)
-  void verifyMultipartRequestsWithoutExistingUserReturnUserNotExistsError(String endpoints)
+  void verifyMultipartRequestsWithoutExistingUserReturnUserNotExists(String endpoints)
       throws Exception {
     userRepository.deleteById(USERNAME);
     String[] inputData = endpoints.split(";\\s*");
@@ -367,14 +259,11 @@ class AllControllerTests {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "PUT; /api/v1/profiles/photos?index=0;; 1" // multipart
-      })
+  @ValueSource(strings = {"PUT; /api/v1/profiles/photos?index=0;; 1"})
   @WithMockUser(username = USERNAME)
-  void verifyMultipartRequestsWithoutExistingProfileReturnProfileNotExistsError(String endpoints)
+  void verifyMultipartRequestsWithoutExistingProfileReturnProfileNotExists(String endpoints)
       throws Exception {
-    deleteProfileIfExistsById(profileId);
+    testUtils.deleteProfileIfExistsById(testUtils.getProfile());
     String[] inputData = endpoints.split(";\\s*");
     MockMultipartHttpServletRequestBuilder builder = createMultipartRequestBuilder(inputData);
     mockMvc
@@ -419,10 +308,10 @@ class AllControllerTests {
     builder.with(createRequestPostProcessor(method, body));
 
     for (int i = 0; i < photoAmount; i++) {
-      builder = builder.file(photo);
+      builder = builder.file(testUtils.getPhoto());
     }
     for (int i = 0; i < bodyAmount; i++) {
-      builder = builder.file(jsonFile);
+      builder = builder.file(testUtils.getBody());
     }
 
     return builder;

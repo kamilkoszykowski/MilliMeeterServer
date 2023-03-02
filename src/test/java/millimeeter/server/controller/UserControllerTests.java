@@ -8,8 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.nio.charset.StandardCharsets;
 import millimeeter.server.repository.UserRepository;
+import millimeeter.server.service.TestUtils;
 import org.codehaus.plexus.util.FileUtils;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,17 +25,19 @@ import org.springframework.web.context.WebApplicationContext;
 class UserControllerTests {
 
   private final UserRepository userRepository;
+  private final TestUtils testUtils;
   private final WebApplicationContext applicationContext;
   private MockMvc mockMvc;
 
   @Autowired
   public UserControllerTests(
-      UserRepository userRepository, WebApplicationContext applicationContext) {
+      UserRepository userRepository, TestUtils testUtils, WebApplicationContext applicationContext) {
     this.userRepository = userRepository;
+    this.testUtils = testUtils;
     this.applicationContext = applicationContext;
   }
 
-  static final String USERNAME = MessageControllerTests.USERNAME;
+  static final String USERNAME = TestUtils.USERNAME;
 
   @BeforeEach
   void init() {
@@ -43,17 +45,13 @@ class UserControllerTests {
         MockMvcBuilders.webAppContextSetup(applicationContext)
             .defaultResponseCharacterEncoding(StandardCharsets.UTF_8)
             .build();
-    if (userRepository.findById(USERNAME).isPresent()) {
-      userRepository.deleteById(USERNAME);
-    }
+    testUtils.deleteProfileIfExistsById(testUtils.getProfile());
+    testUtils.deleteUserIfExists(TestUtils.USERNAME);
   }
-
-  @AfterAll
-  static void afterAll() {}
 
   @Test
   @WithMockUser(username = USERNAME)
-  void createUserAndExpectCreated() throws Exception {
+  void verifyCreatingUserReturnCreated() throws Exception {
     mockMvc
         .perform(post("/api/v1/users"))
         .andDo(print())
@@ -66,8 +64,8 @@ class UserControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void createUserAndExpectConflict() throws Exception {
-    userRepository.createUser(USERNAME);
+  void verifyCreatingAlreadyExistingUserReturnConflict() throws Exception {
+    testUtils.createUserIfNotExists(USERNAME, testUtils.getProfile());
     mockMvc
         .perform(post("/api/v1/users"))
         .andDo(print())
@@ -76,7 +74,7 @@ class UserControllerTests {
   }
 
   @Test
-  void zDeleteUsersAfterAllTests() throws Exception {
+  void zDeleteUsersAfterAllTests() {
     String[] usernames = {"mockUser", "anotherUser", "anotherUser2"};
     String[] photos = {
       "photo1", "photo2", "anotherPhoto1", "anotherPhoto2", "anotherPhoto2_1", "anotherPhoto2_2"

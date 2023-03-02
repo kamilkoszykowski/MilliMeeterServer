@@ -1,22 +1,10 @@
 package millimeeter.server.controller;
 
-import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.util.List;
 import millimeeter.server.dto.RegistrationDto;
 import millimeeter.server.model.Profile;
-import millimeeter.server.repository.ProfileRepository;
-import millimeeter.server.repository.UserRepository;
-import org.junit.jupiter.api.*;
+import millimeeter.server.service.TestUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,132 +19,39 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 class ProfileControllerTests {
 
-  private final UserRepository userRepository;
-  private final ProfileRepository profileRepository;
+  private final TestUtils testUtils;
   private final WebApplicationContext applicationContext;
   private MockMvc mockMvc;
 
   @Autowired
   public ProfileControllerTests(
-      UserRepository userRepository,
-      ProfileRepository profileRepository,
+      TestUtils testUtils,
       WebApplicationContext applicationContext) {
-    this.userRepository = userRepository;
-    this.profileRepository = profileRepository;
+    this.testUtils = testUtils;
     this.applicationContext = applicationContext;
   }
 
-  static final String USERNAME = MessageControllerTests.USERNAME;
-  long profileId = -1;
-  static Profile profile = MessageControllerTests.profile;
-  static final String ANOTHER_USERNAME = MessageControllerTests.ANOTHER_USERNAME;
-  long anotherId = -1;
-  Profile anotherProfile = MessageControllerTests.anotherProfile;
+  static final String USERNAME = TestUtils.USERNAME;
+  private Profile profile;
+  private Profile anotherProfile;
+  private MockMultipartFile photo;
+  private MockMultipartFile invalidPhoto;
+  private MockMultipartFile body;
 
-  static RegistrationDto registrationDto =
-      new RegistrationDto(
-          profile.getFirstName(),
-          profile.getDateOfBirth(),
-          profile.getGender().name(),
-          profile.getDescription(),
-          profile.getMySong(),
-          profile.getLastLatitude(),
-          profile.getLastLongitude(),
-          profile.getLookingFor().name(),
-          profile.getSearchDistance(),
-          profile.getAgeRangeMinimum(),
-          profile.getAgeRangeMaximum());
-
-  static String bodyJson =
-      "{\n"
-          + "    \"firstName\": \""
-          + registrationDto.getFirstName()
-          + "\",\n"
-          + "    \"dateOfBirth\": \""
-          + registrationDto.getDateOfBirth()
-          + "\",\n"
-          + "    \"gender\": \""
-          + registrationDto.getGender()
-          + "\",\n"
-          + "    \"description\": \""
-          + registrationDto.getDescription()
-          + "\",\n"
-          + "    \"mySong\": \""
-          + registrationDto.getMySong()
-          + "\",\n"
-          + "    \"lastLatitude\": "
-          + registrationDto.getLastLatitude()
-          + ",\n"
-          + "    \"lastLongitude\": "
-          + registrationDto.getLastLongitude()
-          + ",\n"
-          + "    \"lookingFor\": \""
-          + registrationDto.getLookingFor()
-          + "\",\n"
-          + "    \"searchDistance\": "
-          + registrationDto.getSearchDistance()
-          + ",\n"
-          + "    \"ageRangeMinimum\": "
-          + registrationDto.getAgeRangeMinimum()
-          + ",\n"
-          + "    \"ageRangeMaximum\": "
-          + registrationDto.getAgeRangeMaximum()
-          + "\n"
-          + "}";
-
-  static final String TEST_PHOTO_PATH = "src/main/resources/static/testPhoto.jpg";
-
-  static MockMultipartFile photo =
-      createMockFile("photos", "magik.jpg", MediaType.IMAGE_JPEG_VALUE, TEST_PHOTO_PATH);
-  static MockMultipartFile body =
-      createMockFile("body", "test.json", MediaType.APPLICATION_JSON_VALUE, bodyJson);
-
-  static MockMultipartFile createMockFile(
-      String name, String originalFilename, String mediaType, String path) {
-    try {
-      return new MockMultipartFile(
-          name,
-          originalFilename,
-          mediaType,
-          mediaType.equals("application/json")
-              ? path.getBytes()
-              : new FileInputStream(path).readAllBytes());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  void createProfileIfNotExists(Long profileId, Profile profile) {
-    try {
-      FileOutputStream output = new FileOutputStream("photos/photo1.jpg");
-      output.write(new FileInputStream(TEST_PHOTO_PATH).readAllBytes());
-      output.close();
-      FileOutputStream output2 = new FileOutputStream("photos/photo2.jpg");
-      output2.write(new FileInputStream(TEST_PHOTO_PATH).readAllBytes());
-      output2.close();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-    if (profileRepository.findById(profileId).isEmpty()) {
-      profile.setId(profileId);
-      profileRepository.save(profile);
-    }
-  }
-
-  void deleteProfileIfExistsById(Long profileId) {
-    if (profileRepository.findById(profileId).isPresent()) {
-      List<String> photos = profileRepository.findById(profileId).get().getPhotos();
-      for (String photo : photos) {
-        File toDelete = new File("photos/" + photo);
-        toDelete.delete();
-      }
-      profileRepository.deleteById(profileId);
-    }
-  }
 
   @BeforeEach
   void init() {
@@ -164,22 +59,20 @@ class ProfileControllerTests {
         MockMvcBuilders.webAppContextSetup(applicationContext)
             .defaultResponseCharacterEncoding(StandardCharsets.UTF_8)
             .build();
-    if (userRepository.findById(USERNAME).isEmpty()) {
-      profileId = userRepository.createUser(USERNAME).getProfileId();
-    } else {
-      profileId = userRepository.findProfileIdById(USERNAME);
-    }
-    if (userRepository.findById(ANOTHER_USERNAME).isEmpty()) {
-      anotherId = userRepository.createUser(ANOTHER_USERNAME).getProfileId();
-    } else {
-      anotherId = userRepository.findProfileIdById(ANOTHER_USERNAME);
-    }
+    testUtils.createUserIfNotExists(TestUtils.USERNAME, testUtils.getProfile());
+    testUtils.createUserIfNotExists(TestUtils.ANOTHER_USERNAME, testUtils.getAnotherProfile());
+    testUtils.createProfileIfNotExists(testUtils.getProfile());
+    profile = testUtils.getProfile();
+    anotherProfile = testUtils.getAnotherProfile();
+    photo = testUtils.getPhoto();
+    invalidPhoto = testUtils.getInvalidPhoto();
+    body = testUtils.getBody();
   }
 
   @Test
   @WithMockUser(username = USERNAME)
-  void findProfilesToSwipeAndExpectOkNoProfiles() throws Exception {
-    createProfileIfNotExists(profileId, profile);
+  void verifyFindingProfilesToSwipeReturnOkNoProfiles() throws Exception {
+    testUtils.deleteProfileIfExistsById(anotherProfile);
     mockMvc
         .perform(get("/api/v1/profiles"))
         .andDo(print())
@@ -189,65 +82,63 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void findProfilesToSwipeAndExpectOkWithProfiles() throws Exception {
-    deleteProfileIfExistsById(anotherId);
-    createProfileIfNotExists(profileId, profile);
-    createProfileIfNotExists(anotherId, anotherProfile);
+  void verifyFindingProfilesToSwipeReturnOkWithProfiles() throws Exception {
+    testUtils.deleteProfileIfExistsById(anotherProfile);
+    testUtils.createProfileIfNotExists(anotherProfile);
     mockMvc
         .perform(get("/api/v1/profiles"))
         .andDo(print())
         .andExpect(status().isOk())
         .andExpect(jsonPath("$._embedded.profileToSwipeDtoList.size()", greaterThan(0)))
         .andExpect(
-            jsonPath("$._embedded.profileToSwipeDtoList[?(@.id == " + anotherId + ")]", hasSize(1)))
+            jsonPath("$._embedded.profileToSwipeDtoList[?(@.id == " + anotherProfile.getId() + ")]", hasSize(1)))
         .andExpect(
-            jsonPath("$._embedded.profileToSwipeDtoList[?(@.id == " + anotherId + ")].firstName")
+            jsonPath("$._embedded.profileToSwipeDtoList[?(@.id == " + anotherProfile.getId() + ")].firstName")
                 .value(anotherProfile.getFirstName()))
         .andExpect(
-            jsonPath("$._embedded.profileToSwipeDtoList[?(@.id == " + anotherId + ")].age")
+            jsonPath("$._embedded.profileToSwipeDtoList[?(@.id == " + anotherProfile.getId() + ")].age")
                 .value(
                     LocalDateTime.now()
                         .minusYears(anotherProfile.getDateOfBirth().getYear())
                         .getYear()))
         .andExpect(
-            jsonPath("$._embedded.profileToSwipeDtoList[?(@.id == " + anotherId + ")].gender")
+            jsonPath("$._embedded.profileToSwipeDtoList[?(@.id == " + anotherProfile.getId() + ")].gender")
                 .value(anotherProfile.getGender().name()))
         .andExpect(
-            jsonPath("$._embedded.profileToSwipeDtoList[?(@.id == " + anotherId + ")].description")
+            jsonPath("$._embedded.profileToSwipeDtoList[?(@.id == " + anotherProfile.getId() + ")].description")
                 .value(anotherProfile.getDescription()))
         .andExpect(
-            jsonPath("$._embedded.profileToSwipeDtoList[?(@.id == " + anotherId + ")].mySong")
+            jsonPath("$._embedded.profileToSwipeDtoList[?(@.id == " + anotherProfile.getId() + ")].mySong")
                 .value(anotherProfile.getMySong()))
         .andExpect(
             jsonPath(
                     "$._embedded.profileToSwipeDtoList[?(@.id == "
-                        + anotherId
+                        + anotherProfile.getId()
                         + " && @.distanceAway <= 100)]")
                 .exists())
         .andExpect(
             jsonPath(
                     "$._embedded.profileToSwipeDtoList[?(@.id == "
-                        + anotherId
+                        + anotherProfile.getId()
                         + " && @.photos.size() == 2)]")
                 .exists())
         .andExpect(
             jsonPath(
                     "$._embedded.profileToSwipeDtoList[?(@.id == "
-                        + anotherId
+                        + anotherProfile.getId()
                         + ")]._links.['swipe left'].href")
-                .value("http://localhost/api/v1/swipes/" + anotherId + "/LEFT"))
+                .value("http://localhost/api/v1/swipes/" + anotherProfile.getId() + "/LEFT"))
         .andExpect(
             jsonPath(
                     "$._embedded.profileToSwipeDtoList[?(@.id == "
-                        + anotherId
+                        + anotherProfile.getId()
                         + ")]._links.['swipe right'].href")
-                .value("http://localhost/api/v1/swipes/" + anotherId + "/RIGHT"));
+                .value("http://localhost/api/v1/swipes/" + anotherProfile.getId() + "/RIGHT"));
   }
 
   @Test
   @WithMockUser(username = USERNAME)
-  void getMyProfileAndExpectOk() throws Exception {
-    createProfileIfNotExists(profileId, profile);
+  void verifyGettingMyProfileReturnOk() throws Exception {
     mockMvc
         .perform(get("/api/v1/profiles/me"))
         .andDo(print())
@@ -267,8 +158,9 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void createAndExpectCreated() throws Exception {
-    deleteProfileIfExistsById(profileId);
+  void verifyCreatingProfileReturnCreated() throws Exception {
+    testUtils.deleteProfileIfExistsById(profile);
+    RegistrationDto registrationDto = testUtils.getRegistrationDto();
     mockMvc
         .perform(
             multipart("/api/v1/profiles")
@@ -280,6 +172,9 @@ class ProfileControllerTests {
                 .file(body)
                 .accept(MediaType.APPLICATION_JSON))
         .andDo(print())
+            .andDo(result -> {
+              testUtils.deleteProfileIfExistsById(profile);
+            })
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").isNumber())
         .andExpect(jsonPath("$.firstName").value(registrationDto.getFirstName()))
@@ -301,8 +196,7 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void createAndExpectConflict() throws Exception {
-    createProfileIfNotExists(profileId, profile);
+  void verifyCreatingAlreadyExistingProfileReturnConflict() throws Exception {
     mockMvc
         .perform(
             multipart("/api/v1/profiles").file(photo).file(body).accept(MediaType.APPLICATION_JSON))
@@ -313,8 +207,8 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void createAndExpectUnprocessableEntityTooManyPhotos() throws Exception {
-    deleteProfileIfExistsById(profileId);
+  void verifyCreatingProfileWithTooManyPhotosReturnUnprocessableEntity() throws Exception {
+    testUtils.deleteProfileIfExistsById(profile);
     mockMvc
         .perform(
             multipart("/api/v1/profiles")
@@ -333,9 +227,31 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void updateProfileAndExpectOk() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    createProfileIfNotExists(profileId, profile);
+  void verifyCreatingProfileWithInvalidPhotosReturnUnprocessableEntity() throws Exception {
+    testUtils.deleteProfileIfExistsById(profile);
+    mockMvc
+            .perform(
+                    multipart("/api/v1/profiles")
+                            .file(invalidPhoto)
+                            .file(invalidPhoto)
+                            .file(photo)
+                            .file(photo)
+                            .file(photo)
+                            .file(body)
+                            .accept(MediaType.APPLICATION_JSON))
+            .andDo(print())
+            .andDo(result -> {
+              testUtils.deleteProfileIfExistsById(profile);
+            })
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.errors").value("Photos must have 3/4 aspect ratio and .jpg extension"));
+  }
+
+  @Test
+  @WithMockUser(username = USERNAME)
+  void verifyUpdatingProfileReturnOk() throws Exception {
+    testUtils.deleteProfileIfExistsById(profile);
+    testUtils.createProfileIfNotExists(profile);
     mockMvc
         .perform(
             put("/api/v1/profiles")
@@ -376,8 +292,7 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void updateLocationAndExpectOkAndNewValues() throws Exception {
-    createProfileIfNotExists(profileId, profile);
+  void verifyUpdatingLocationReturnOkAndNewValues() throws Exception {
     mockMvc
         .perform(
             put("/api/v1/profiles/location")
@@ -391,10 +306,11 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void uploadPhotoAndExpectOkWithPhotoAddedAsLast() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    profile.setPhotos(List.of("photo1.jpg", "photo2.jpg"));
-    createProfileIfNotExists(profileId, profile);
+  void verifyUploadingPhotoReturnOkWithPhotoAddedAsLast() throws Exception {
+    testUtils.deleteProfileIfExistsById(profile);
+    Profile modifiedProfile = profile;
+    modifiedProfile.setPhotos(List.of("photo1.jpg", "photo2.jpg"));
+    testUtils.createProfileIfNotExists(modifiedProfile);
     MockMultipartHttpServletRequestBuilder builder =
         MockMvcRequestBuilders.multipart("/api/v1/profiles/photos");
     builder.with(
@@ -429,9 +345,9 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void uploadPhotoAndExpectOkWithPhotoAddedAtCertainIndex() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    createProfileIfNotExists(profileId, profile);
+  void verifyUploadingPhotoReturnOkWithPhotoAddedAtCertainIndex() throws Exception {
+    testUtils.deleteProfileIfExistsById(profile);
+    testUtils.createProfileIfNotExists(profile);
     MockMultipartHttpServletRequestBuilder builder =
         MockMvcRequestBuilders.multipart("/api/v1/profiles/photos");
     builder.with(
@@ -466,12 +382,35 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void uploadPhotoAndExpectUnprocessableEntityPhotoLimitReached() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    Profile modifiedProfile = profile;
+  void verifyUploadingInvalidPhotoReturnUnprocessableEntity() throws Exception {
+    testUtils.deleteProfileIfExistsById(profile);
+    testUtils.createProfileIfNotExists(profile);
+    MockMultipartHttpServletRequestBuilder builder =
+            MockMvcRequestBuilders.multipart("/api/v1/profiles/photos");
+    builder.with(
+            new RequestPostProcessor() {
+              @Override
+              public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
+                request.setMethod("PUT");
+                return request;
+              }
+            });
+    mockMvc
+            .perform(builder.file(invalidPhoto).param("index", "1").accept(MediaType.APPLICATION_JSON))
+            .andDo(print())
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.errors").value("Photos must have 3/4 aspect ratio and .jpg extension"));
+  }
+
+  @Test
+  @WithMockUser(username = USERNAME)
+  void verifyUploadingPhotoWithLimitReachedReturnUnprocessableEntity() throws Exception {
+    testUtils.deleteProfileIfExistsById(profile);
+    Profile unmodifiedProfile = testUtils.getProfile();
+    Profile modifiedProfile = new Profile(unmodifiedProfile);
     modifiedProfile.setPhotos(
         List.of("photo1.jpg", "photo2.jpg", "photo3.jpg", "photo4.jpg", "photo5.jpg"));
-    createProfileIfNotExists(profileId, modifiedProfile);
+    testUtils.createProfileIfNotExists(modifiedProfile);
     MockMultipartHttpServletRequestBuilder builder =
         MockMvcRequestBuilders.multipart("/api/v1/profiles/photos");
     builder.with(
@@ -485,15 +424,19 @@ class ProfileControllerTests {
     mockMvc
         .perform(builder.file(photo).param("index", "-1").accept(MediaType.APPLICATION_JSON))
         .andDo(print())
+            .andDo(result -> {
+              testUtils.deleteProfileIfExistsById(profile);
+              testUtils.createProfileIfNotExists(unmodifiedProfile);
+            })
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.errors").value("Limit of 5 photos reached"));
   }
 
   @Test
   @WithMockUser(username = USERNAME)
-  void deletePhotoAndExpectOk() throws Exception {
-    deleteProfileIfExistsById(profileId);
-    createProfileIfNotExists(profileId, profile);
+  void verifyDeletingPhotoReturnOk() throws Exception {
+    testUtils.deleteProfileIfExistsById(profile);
+    testUtils.createProfileIfNotExists(profile);
     mockMvc
         .perform(put("/api/v1/profiles/photos/{photoNumber}", 0))
         .andDo(print())
@@ -516,8 +459,26 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void getSwipesLeftAndExpectOk() throws Exception {
-    createProfileIfNotExists(profileId, profile);
+  void verifyDeletingLastRemainingPhotoReturnUnprocessableEntity() throws Exception {
+    testUtils.deleteProfileIfExistsById(profile);
+    Profile unmodifiedProfile = testUtils.getProfile();
+    Profile modifiedProfile = new Profile(unmodifiedProfile);
+    modifiedProfile.setPhotos(List.of("photo1.jpg"));
+    testUtils.createProfileIfNotExists(modifiedProfile);
+    mockMvc
+            .perform(put("/api/v1/profiles/photos/{photoNumber}", 0))
+            .andDo(print())
+            .andDo(result -> {
+              testUtils.deleteProfileIfExistsById(profile);
+              testUtils.createProfileIfNotExists(unmodifiedProfile);
+            })
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.errors").value("Cannot delete the only remaining photo"));
+  }
+
+  @Test
+  @WithMockUser(username = USERNAME)
+  void verifyGettingSwipesLeftReturnOk() throws Exception {
     mockMvc
         .perform(get("/api/v1/profiles/swipesLeft"))
         .andDo(print())
@@ -527,8 +488,8 @@ class ProfileControllerTests {
 
   @Test
   @WithMockUser(username = USERNAME)
-  void deleteProfileAndExpectNoContent() throws Exception {
-    deleteProfileIfExistsById(profileId);
+  void verifyDeletingProfileReturnNoContent() throws Exception {
+    testUtils.deleteProfileIfExistsById(profile);
     mockMvc
         .perform(delete("/api/v1/profiles"))
         .andDo(print())
